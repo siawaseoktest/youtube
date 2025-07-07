@@ -119,6 +119,13 @@ export default {
 </script>
 
 <style scoped>
+  
+html, body {
+  margin: 0;
+  padding: 0;
+  font-family: Meiryo, "メイリオ", sans-serif;
+}
+  
 .video-list {
   list-style: none;
   padding: 0;
