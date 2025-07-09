@@ -3,7 +3,7 @@ import fetch from "node-fetch";
 import ytimg from "./yt-img.js";
 import suggestRouter from "./routes/suggest.js"; 
 import searchRouter from "./routes/search.js";
-import suggestRouter from "./routes/suggest.js"; 
+
 
 const app = express();
 const PORT = process.env.PORT || 5000;

@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "start": "concurrently \"node server/index.js\" \"npm run dev --prefix client\""
+    "start": "concurrently \"node server/index.js\" \"npm run dev --prefix client\"",
+    "postinstall": "npm install --prefix client"
   },
   "dependencies": {
     "express": "^4.18.2",
