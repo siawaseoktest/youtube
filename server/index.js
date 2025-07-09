@@ -2,7 +2,7 @@ import express from "express";
 import fetch from "node-fetch"; // v3系は import でOK
 import ytimg from "./yt-img.js"; // 拡張子 .js 必須
 import searchRouter from "./routes/search.js";
-import suggestRouter from "./routes/suggest.js"; // これだけにする
+import suggestRouter from "./routes/suggest.js"; 
 
 const app = express();
 const PORT = process.env.PORT || 5000;
