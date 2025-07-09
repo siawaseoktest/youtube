@@ -1,13 +1,7 @@
 <template>
   <div>
-    <HeaderSearch @search="handleSearch" />
-
-    <!-- 検索中の表示 -->
-    <div v-if="searchLoading" class="loading">検索中...</div>
-    <div v-if="searchError" class="error">{{ searchError }}</div>
-
-    <!-- カテゴリ切り替えボタン（検索中は非表示） -->
-    <nav v-if="!isSearching" class="category-nav">
+    <!-- カテゴリ切り替えボタン -->
+    <nav class="category-nav">
       <button
         v-for="cat in categories"
         :key="cat.key"
@@ -19,42 +13,23 @@
     </nav>
 
     <main>
-      <!-- 検索結果表示 -->
+      <div v-if="loading" class="loading">読み込み中...</div>
+      <div v-if="error" class="error">{{ error }}</div>
+
       <VideoList
-        v-if="isSearching && !searchLoading && !searchError && searchResults.length"
-        :videos="searchResults"
-        :title="`検索キーワード: ${searchKeyword}`"
+        v-if="!loading && !error && selectedVideos.length"
+        :videos="selectedVideos"
+        :title="currentCategoryLabel"
       />
-
-      <!-- 検索結果なしメッセージ -->
-      <div
-        v-if="isSearching && !searchLoading && !searchError && !searchResults.length"
-        class="no-results"
-      >
-        検索結果が見つかりませんでした。
-      </div>
-
-      <!-- 急上昇動画表示 -->
-      <div v-if="!isSearching">
-        <div v-if="loading">読み込み中...</div>
-        <div v-if="error" class="error">{{ error }}</div>
-
-        <VideoList
-          v-if="!loading && !error && selectedVideos.length"
-          :videos="selectedVideos"
-          :title="currentCategoryLabel"
-        />
-      </div>
     </main>
   </div>
 </template>
 
 <script>
-import HeaderSearch from "@/components/HeaderSearch.vue";
 import VideoList from "@/components/VideoList.vue";
 
 export default {
-  components: { HeaderSearch, VideoList },
+  components: { VideoList },
   data() {
     return {
       trend: {
@@ -70,10 +45,6 @@ export default {
         { key: "gaming", label: "ゲーム" },
         { key: "music", label: "音楽" },
       ],
-      searchKeyword: "",
-      searchResults: [],
-      searchLoading: false,
-      searchError: null,
     };
   },
   computed: {
@@ -81,13 +52,8 @@ export default {
       return this.trend[this.selectedCategory] || [];
     },
     currentCategoryLabel() {
-      const found = this.categories.find(
-        (c) => c.key === this.selectedCategory
-      );
+      const found = this.categories.find(c => c.key === this.selectedCategory);
       return found ? found.label : "";
-    },
-    isSearching() {
-      return this.searchKeyword !== "";
     },
   },
   created() {
@@ -106,29 +72,6 @@ export default {
         this.error = e.message;
       } finally {
         this.loading = false;
-      }
-    },
-    async handleSearch(keyword) {
-      this.searchKeyword = keyword;
-      this.searchResults = [];
-      this.searchError = null;
-
-      if (!keyword) {
-        this.searchKeyword = "";
-        return;
-      }
-
-      this.searchLoading = true;
-
-      try {
-        const res = await fetch(`/api/search?q=${encodeURIComponent(keyword)}`);
-        if (!res.ok) throw new Error("検索失敗");
-        const data = await res.json();
-        this.searchResults = data.results || [];
-      } catch (e) {
-        this.searchError = e.message || "検索中にエラーが発生しました";
-      } finally {
-        this.searchLoading = false;
       }
     },
   },
@@ -161,11 +104,6 @@ export default {
 .loading {
   padding: 1rem;
   text-align: center;
-}
-.no-results {
-  padding: 1rem;
-  text-align: center;
-  color: #666;
 }
 main {
   padding: 1rem;

@@ -1,38 +1,49 @@
 <template>
-  <form @submit.prevent="onSubmit" class="header-search" ref="searchFormRef">
-    <input
-      type="text"
-      v-model="query"
-      @input="onInput"
-      @keydown.down.prevent="moveSelection(1)"
-      @keydown.up.prevent="moveSelection(-1)"
-      @keydown.enter.prevent="onEnter"
-      placeholder="キーワードを入力..."
-      autocomplete="off"
-      class="search-input"
-      aria-label="Search"
-    />
-    <button type="submit" class="search-button" aria-label="検索">
-      <img
-        src="https://raw.githubusercontent.com/siawaseok3/siawaseok3.github.io/refs/heads/main/%E6%A4%9C%E7%B4%A2%E3%82%A2%E3%82%A4%E3%82%B3%E3%83%B3.png"
-        alt="🔍"
-        style="width: 20px; height: 20px"
-      />
+  <div class="header-wrapper fixed-header">
+    <button
+      type="button"
+      class="home-button"
+      @click="$router.push('/')"
+      aria-label="トップページへ戻る"
+    >ホーム
     </button>
 
-    <ul v-if="suggestions.length" class="suggestions-list" role="listbox">
-      <li
-        v-for="(item, index) in suggestions"
-        :key="index"
-        :class="{ selected: index === selectedIndex }"
-        @mousedown.prevent="onSuggestionClick(index)"
-        role="option"
-        :aria-selected="index === selectedIndex"
-      >
-        {{ item }}
-      </li>
-    </ul>
-  </form>
+    <form @submit.prevent="onSubmit" class="header-search" ref="searchFormRef">
+      <input
+        type="text"
+        v-model="query"
+        @input="onInput"
+        @keydown.down.prevent="moveSelection(1)"
+        @keydown.up.prevent="moveSelection(-1)"
+        @keydown.enter.prevent="onEnter"
+        placeholder="キーワードを入力..."
+        autocomplete="off"
+        class="search-input"
+        aria-label="Search"
+      />
+
+      <button type="submit" class="search-button" aria-label="検索">
+        <img
+          src="https://raw.githubusercontent.com/siawaseok3/siawaseok3.github.io/refs/heads/main/%E6%A4%9C%E7%B4%A2%E3%82%A2%E3%82%A4%E3%82%B3%E3%83%B3.png"
+          alt="🔍"
+          style="width: 20px; height: 20px"
+        />
+      </button>
+
+      <ul v-if="suggestions.length" class="suggestions-list" role="listbox">
+        <li
+          v-for="(item, index) in suggestions"
+          :key="index"
+          :class="{ selected: index === selectedIndex }"
+          @mousedown.prevent="onSuggestionClick(index)"
+          role="option"
+          :aria-selected="index === selectedIndex"
+        >
+          {{ item }}
+        </li>
+      </ul>
+    </form>
+  </div>
 </template>
 
 <script setup>
@@ -45,12 +56,8 @@ const suggestions = ref([]);
 const selectedIndex = ref(-1);
 let fetchController = null;
 
-// フォームのDOM参照
 const searchFormRef = ref(null);
 
-/**
- * 外部クリックを検知して候補を閉じる処理
- */
 const onClickOutside = (event) => {
   if (searchFormRef.value && !searchFormRef.value.contains(event.target)) {
     suggestions.value = [];
@@ -78,9 +85,7 @@ const fetchSuggestions = async (keyword) => {
   try {
     const res = await fetch(
       `/api/suggest?keyword=${encodeURIComponent(keyword)}`,
-      {
-        signal: fetchController.signal,
-      }
+      { signal: fetchController.signal }
     );
     if (!res.ok) throw new Error("Network error");
     const data = await res.json();
@@ -102,8 +107,7 @@ const onInput = () => {
 const moveSelection = (delta) => {
   if (suggestions.value.length === 0) return;
   selectedIndex.value += delta;
-  if (selectedIndex.value < 0)
-    selectedIndex.value = suggestions.value.length - 1;
+  if (selectedIndex.value < 0) selectedIndex.value = suggestions.value.length - 1;
   if (selectedIndex.value >= suggestions.value.length) selectedIndex.value = 0;
   query.value = suggestions.value[selectedIndex.value];
 };
@@ -133,36 +137,80 @@ const onSubmit = () => {
 };
 </script>
 
-
 <style scoped>
+.header-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  max-width: 100vw;
+  padding: 0.5rem 1rem;
+  box-sizing: border-box;
+  background-color: white;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+  height: 54px; /* ヘッダー高さ */
+  position: fixed; 
+  top: 0;
+  left: 0;
+}
+
+.home-button {
+  border: none;
+  background:rgb(184, 184, 184);
+  color:rgb(78, 77, 77);
+  font-size: 16px;
+  border-radius: 10%;
+  width: auto;
+  height: 36px;
+  cursor: pointer;
+  user-select: none;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.5s ease;
+  flex-shrink: 0;
+}
+
+.home-button:hover {
+  background:rgb(136, 136, 136);
+}
+
 .header-search {
   display: flex;
-  position: relative;
+  align-items: center;
+  flex: 1;
   max-width: 600px;
   margin: 0 auto;
+  position: relative;
+  height: 40px; 
 }
 
 .search-input {
   flex: 1;
-  padding: 0.5em 1em;
-  border-radius: 40px 0 0 40px;
+  height: 100%;
+  padding: 5px 12px 7px 12px; 
+  line-height: 28px;
+  border-radius: 20px 0 0 20px;
   border: 1px solid #ccc;
   outline: none;
-  font-size: 1rem;
+  font-size: 0.9rem;
   box-sizing: border-box;
-  height: 45px;
+  text-align: left;
+  vertical-align: middle;
 }
 
 .search-button {
-  border-radius: 0 40px 40px 0;
+  border-radius: 0 20px 20px 0;
   border: 1px solid #ccc;
   border-left: none;
   background-color: #f8f8f8;
   cursor: pointer;
-  padding: 0 1em;
+  padding: 0 0.75em;
   font-size: 1.1rem;
   user-select: none;
-  height: 45px;
+  height: 100%;
   line-height: 1;
   display: flex;
   align-items: center;
@@ -195,4 +243,5 @@ const onSubmit = () => {
 .suggestions-list li:hover {
   background-color: #f0f0f0;
 }
+
 </style>

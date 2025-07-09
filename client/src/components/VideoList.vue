@@ -3,11 +3,7 @@
     <h2>{{ title }}</h2>
     <ul class="video-list">
       <li v-for="video in videos" :key="video.id" class="video-item">
-        <a
-          :href="`https://www.youtube.com/watch?v=${video.id}`"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
+        <router-link :to="`/watch?v=${video.id}`" class="thumbnail-link">
           <div
             class="thumbnail-wrapper"
             :data-duration="formatDuration(video.duration)"
@@ -18,17 +14,18 @@
               @error="onImageError($event, video.id)"
             />
           </div>
-        </a>
+        </router-link>
+
         <div class="info">
           <h3>
-            <a
-              :href="`https://www.youtube.com/watch?v=${video.id}`"
-              target="_blank"
-              rel="noopener noreferrer"
+            <router-link
+              :to="`/watch?v=${video.id}`"
+              class="title-link"
             >
               {{ video.title }}
-            </a>
+            </router-link>
           </h3>
+
           <div class="channel-info">
             <img
               :src="video.channelIcon"
@@ -44,6 +41,7 @@
               {{ video.channel }}
             </a>
           </div>
+
           <p>
             {{ formatViewCount(video.viewCount) }}回視聴・{{
               formatPublishedAt(video.publishedAt)
@@ -54,6 +52,7 @@
     </ul>
   </section>
 </template>
+
 
 <script>
 export default {
