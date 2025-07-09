@@ -3,6 +3,8 @@ import fetch from "node-fetch";
 import ytimg from "./yt-img.js";
 import suggestRouter from "./routes/suggest.js"; 
 import searchRouter from "./routes/search.js";
+import videoRouter from "./routes/video.js"; 
+
 
 
 const app = express();
@@ -15,6 +17,7 @@ app.use(express.json());
 app.use("/", ytimg);
 app.use("/api/search", searchRouter);
 app.use("/api/suggest", suggestRouter);
+app.use("/api/video", videoRouter);
 
 // GitHubのtrend.jsonを返すAPI
 app.get("/api/trend", async (req, res) => {
