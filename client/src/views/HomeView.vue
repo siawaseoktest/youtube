@@ -21,24 +21,20 @@
     <main>
       <!-- 検索結果表示 -->
       <VideoList
-        v-if="
-          isSearching && !searchLoading && !searchError && searchResults.length
-        "
+        v-if="isSearching && !searchLoading && !searchError && searchResults.length"
         :videos="searchResults"
-        :title="`検索結果: 「${searchKeyword}」`"
+        :title="`検索キーワード: ${searchKeyword}`"
       />
 
       <!-- 検索結果なしメッセージ -->
       <div
-        v-if="
-          isSearching && !searchLoading && !searchError && !searchResults.length
-        "
+        v-if="isSearching && !searchLoading && !searchError && !searchResults.length"
         class="no-results"
       >
         検索結果が見つかりませんでした。
       </div>
 
-      <!-- 急上昇動画表示（検索してない時） -->
+      <!-- 急上昇動画表示 -->
       <div v-if="!isSearching">
         <div v-if="loading">読み込み中...</div>
         <div v-if="error" class="error">{{ error }}</div>
@@ -68,14 +64,12 @@ export default {
       },
       loading: false,
       error: null,
-      selectedCategory: "trending", // 初期は急上昇
+      selectedCategory: "trending",
       categories: [
         { key: "trending", label: "急上昇" },
         { key: "gaming", label: "ゲーム" },
         { key: "music", label: "音楽" },
       ],
-
-      // 検索用
       searchKeyword: "",
       searchResults: [],
       searchLoading: false,
@@ -114,23 +108,22 @@ export default {
         this.loading = false;
       }
     },
-
     async handleSearch(keyword) {
       this.searchKeyword = keyword;
       this.searchResults = [];
       this.searchError = null;
+
       if (!keyword) {
-        // 空検索なら検索結果クリアしてトレンドに戻る
         this.searchKeyword = "";
         return;
       }
+
       this.searchLoading = true;
 
       try {
         const res = await fetch(`/api/search?q=${encodeURIComponent(keyword)}`);
         if (!res.ok) throw new Error("検索失敗");
         const data = await res.json();
-        // 例: data.results に動画配列が入っている想定
         this.searchResults = data.results || [];
       } catch (e) {
         this.searchError = e.message || "検索中にエラーが発生しました";

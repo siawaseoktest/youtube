@@ -1,6 +1,7 @@
 import express from "express";
-import fetch from "node-fetch"; // v3系は import でOK
-import ytimg from "./yt-img.js"; // 拡張子 .js 必須
+import fetch from "node-fetch";
+import ytimg from "./yt-img.js";
+import suggestRouter from "./routes/suggest.js"; 
 import searchRouter from "./routes/search.js";
 import suggestRouter from "./routes/suggest.js"; 
 
@@ -10,7 +11,7 @@ const PORT = process.env.PORT || 5000;
 // ミドルウェア
 app.use(express.json());
 
-// ルーティング順に注意
+// ルーティング
 app.use("/", ytimg);
 app.use("/api/search", searchRouter);
 app.use("/api/suggest", suggestRouter);

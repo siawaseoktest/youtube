@@ -68,6 +68,74 @@ export default {
     },
   },
   methods: {
+    // duration を mm:ss または hh:mm:ss 表記に変換（ISO8601か文字列形式対応）
+    formatDuration(input) {
+      if (!input) return "";
+
+      // ISO8601形式をパース
+      const isoMatch = input.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
+      const pad = (n) => n.toString().padStart(2, "0");
+      if (isoMatch) {
+        // キャプチャ部分のみ parseInt
+        const [h, m, s] = isoMatch.slice(1).map(v => parseInt(v || "0"));
+        const totalSeconds = (h * 3600) + (m * 60) + s;
+        const hh = Math.floor(totalSeconds / 3600);
+        const mm = Math.floor((totalSeconds % 3600) / 60);
+        const ss = totalSeconds % 60;
+        return hh ? `${hh}:${pad(mm)}:${pad(ss)}` : `${mm}:${pad(ss)}`;
+      }
+
+      // mm:ss または hh:mm:ss 形式の文字列を簡易チェックして整形
+      const timeParts = input.split(":");
+
+      if (
+        timeParts.length === 2 &&
+        timeParts.every((part) => /^\d+$/.test(part))
+      ) {
+        // mm:ss
+        const [mm, ss] = timeParts;
+        return `${parseInt(mm)}:${pad(parseInt(ss))}`;
+      } else if (
+        timeParts.length === 3 &&
+        timeParts.every((part) => /^\d+$/.test(part))
+      ) {
+        // hh:mm:ss
+        const [hh, mm, ss] = timeParts;
+        return `${parseInt(hh)}:${pad(parseInt(mm))}:${pad(parseInt(ss))}`;
+      }
+
+      // 対応しない形式は空文字
+      return "";
+    },
+
+    formatPublishedAt(input) {
+      if (!input) return "不明";
+
+      // ISO8601形式か判定
+      const isoDate = new Date(input);
+      if (!isNaN(isoDate.getTime())) {
+        const now = new Date();
+        const diffMs = now - isoDate;
+        const minutes = Math.floor(diffMs / (1000 * 60));
+        const hours = Math.floor(minutes / 60);
+        const days = Math.floor(hours / 24);
+
+        if (minutes < 1) return "たった今";
+        if (minutes < 60) return `${minutes}分前`;
+        if (hours < 24) return `${hours}時間前`;
+        if (days === 1) return "1日前";
+        return `${days}日前`;
+      }
+
+      // 日本語の相対表現ならそのまま返す
+      if (/^\d+日前$/.test(input) || /^\d+時間前$/.test(input) || /^\d+分前$/.test(input) || input === "たった今") {
+        return input;
+      }
+
+      // それ以外は入力をそのまま返す
+      return input;
+    },
+
     getPrimaryThumbnail(id) {
       return `https://i.ytimg.com/vi/${id}/sddefault.jpg`;
     },
@@ -78,9 +146,9 @@ export default {
       }
     },
     onChannelIconError(event) {
-      // 読み込み失敗したチャンネルアイコン画像を非表示にする
       event.target.style.display = "none";
     },
+
     formatViewCount(num) {
       if (!num) return "0";
       if (num < 10000) return num.toLocaleString();
@@ -88,31 +156,6 @@ export default {
         return (num / 10000).toFixed(1).replace(/\.0$/, "") + "万";
       }
       return (num / 100000000).toFixed(1).replace(/\.0$/, "") + "億";
-    },
-    formatPublishedAt(dateStr) {
-      if (!dateStr) return "不明";
-      const published = new Date(dateStr);
-      const now = new Date();
-      const diffMs = now - published;
-      const minutes = Math.floor(diffMs / (1000 * 60));
-      const hours = Math.floor(minutes / 60);
-      const days = Math.floor(hours / 24);
-
-      if (minutes < 1) return "たった今";
-      if (minutes < 60) return `${minutes}分前`;
-      if (hours < 24) return `${hours}時間前`;
-      if (days === 1) return "1日前";
-      return `${days}日前`;
-    },
-    formatDuration(iso) {
-      const match = iso?.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
-      if (!match) return "";
-      const [, h, m, s] = match;
-      const hh = parseInt(h || 0);
-      const mm = parseInt(m || 0);
-      const ss = parseInt(s || 0);
-      const pad = (n) => n.toString().padStart(2, "0");
-      return hh ? `${hh}:${pad(mm)}:${pad(ss)}` : `${mm}:${pad(ss)}`;
     },
   },
 };
@@ -189,6 +232,7 @@ html, body {
   color: #222;
   display: -webkit-box;
   -webkit-line-clamp: 3;
+  line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
   text-overflow: ellipsis;

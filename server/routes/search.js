@@ -1,39 +1,129 @@
 import express from "express";
-import { Innertube } from "youtubei.js";
+import Youtube from "youtubei.js";
 
 const router = express.Router();
 
-// YouTubeiクライアントの作成は1回だけでOK
-const youtube = await Innertube.create();
+let youtube;
+const youtubeReady = Youtube.create()
+  .then(instance => {
+    youtube = instance;
+    console.log("✅ YouTube API initialized");
+  })
+  .catch(err => {
+    console.error("❌ Failed to initialize YouTube API:", err);
+  });
+
+// サムネイル複数解像度
+function generateThumbnails(videoId) {
+  if (!videoId) return {};
+  return {
+    default: { url: `https://i.ytimg.com/vi/${videoId}/default.jpg` },
+    medium:  { url: `https://i.ytimg.com/vi/${videoId}/mqdefault.jpg` },
+    high:    { url: `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg` },
+    standard:{ url: `https://i.ytimg.com/vi/${videoId}/sddefault.jpg` },
+    maxres:  { url: `https://i.ytimg.com/vi/${videoId}/maxresdefault.jpg` },
+  };
+}
+
+// viewCount: "2,345,678 views" → "2345678"
+function normalizeViewCount(viewText) {
+  if (typeof viewText !== "string") return "0";
+  const num = viewText.replace(/[^\d]/g, "");
+  return num || "0";
+}
+
+// publishedAtを日本語の相対時間文字列に変換
+function formatPublishedAtJapanese(relativeText) {
+  if (!relativeText) return "不明";
+
+  // "2 hours ago", "1 day ago" など英語相対時間を日本語に変換
+  const regex = /(\d+)\s*(second|minute|hour|day|week|month|year)s?\s*ago/i;
+  const match = relativeText.match(regex);
+
+  if (!match) {
+    // すでに日本語表現だったらそのまま返す（例："2時間前", "1日前"など）
+    if (typeof relativeText === "string" && /前$/.test(relativeText)) {
+      return relativeText;
+    }
+    return "不明";
+  }
+
+  const value = Number(match[1]);
+  const unit = match[2].toLowerCase();
+
+  switch (unit) {
+    case "second":
+      return value < 60 ? "たった今" : `${value}秒前`; // 60秒未満なら「たった今」
+    case "minute":
+      return value === 1 ? "1分前" : `${value}分前`;
+    case "hour":
+      return value === 1 ? "1時間前" : `${value}時間前`;
+    case "day":
+      return value === 1 ? "1日前" : `${value}日前`;
+    case "week":
+      return value === 1 ? "1週間前" : `${value}週間前`;
+    case "month":
+      return value === 1 ? "1ヶ月前" : `${value}ヶ月前`;
+    case "year":
+      return value === 1 ? "1年前" : `${value}年前`;
+    default:
+      return "不明";
+  }
+}
 
 router.get("/", async (req, res) => {
-  const query = req.query.q;
-  if (!query) {
+  await youtubeReady;
+
+  if (!youtube) {
+    return res.status(503).json({ error: "YouTube API failed to initialize." });
+  }
+
+  const keyword = req.query.q;
+  const pageToken = req.query.pageToken;
+
+  if (!keyword && !pageToken) {
     return res.status(400).json({ error: "Query parameter 'q' is required" });
   }
 
   try {
-    // YouTube検索
-    const results = await youtube.search(query, { type: "video" });
+    let result;
+    if (pageToken) {
+      result = await youtube.getSearchContinuation(pageToken);
+    } else {
+      result = await youtube.search(keyword, {
+        type: "video",
+        limit: 20,
+        params: {
+          gl: "JP",
+          hl: "ja",
+        },
+      });
+    }
 
-    // 動画のみ抽出して整形
-    const videos = results.items
-      .filter((item) => item.type === "video")
-      .map((video) => ({
-        id: video.id,
-        title: video.title,
-        channel: video.author?.title || "",
-        channelId: video.author?.channel_id || "",
-        publishedAt: video.published?.toISOString() || "",
-        thumbnails: video.thumbnails,
-        duration: video.duration?.toString() || "",
-        viewCount: video.views || "0",
-        url: `https://www.youtube.com/watch?v=${video.id}`,
-      }));
+    const videos = (result.results || [])
+      .filter(item => item.type === "Video")
+      .map(item => {
+        const videoId = item.video_id || item.id;
+        return {
+          id: videoId,
+          title: item.title?.text || item.title?.runs?.[0]?.text || "無題",
+          duration: item.duration?.text || "不明", // 例: "2:30" をそのまま返す
+          publishedAt: formatPublishedAtJapanese(item.published?.text || ""),
+          channel: item.author?.name || "不明なチャンネル",
+          channelId: item.author?.id || "",
+          channelIcon: item.author?.thumbnails?.[0]?.url || "",
+          thumbnails: generateThumbnails(videoId),
+          viewCount: normalizeViewCount(item.view_count?.text || ""),
+          url: `https://www.youtube.com/watch?v=${videoId}`,
+        };
+      });
 
-    res.json({ videos });
-  } catch (err) {
-    console.error(err);
+    res.json({
+      results: videos,
+      nextPageToken: result.continuation || null,
+    });
+  } catch (e) {
+    console.error("❌ Search error:", e);
     res.status(500).json({ error: "Failed to fetch search results" });
   }
 });

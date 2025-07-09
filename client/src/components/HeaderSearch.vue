@@ -1,5 +1,5 @@
 <template>
-  <form @submit.prevent="onSubmit" class="header-search">
+  <form @submit.prevent="onSubmit" class="header-search" ref="searchFormRef">
     <input
       type="text"
       v-model="query"
@@ -36,14 +36,35 @@
 </template>
 
 <script setup>
-import { ref, watch } from "vue";
-import { useRouter } from "vue-router";
+import { ref, onMounted, onBeforeUnmount } from "vue";
 
-const router = useRouter();
+const emit = defineEmits(["search"]);
+
 const query = ref("");
 const suggestions = ref([]);
 const selectedIndex = ref(-1);
 let fetchController = null;
+
+// フォームのDOM参照
+const searchFormRef = ref(null);
+
+/**
+ * 外部クリックを検知して候補を閉じる処理
+ */
+const onClickOutside = (event) => {
+  if (searchFormRef.value && !searchFormRef.value.contains(event.target)) {
+    suggestions.value = [];
+    selectedIndex.value = -1;
+  }
+};
+
+onMounted(() => {
+  document.addEventListener("click", onClickOutside);
+});
+
+onBeforeUnmount(() => {
+  document.removeEventListener("click", onClickOutside);
+});
 
 const fetchSuggestions = async (keyword) => {
   if (!keyword) {
@@ -51,7 +72,6 @@ const fetchSuggestions = async (keyword) => {
     selectedIndex.value = -1;
     return;
   }
-  // キャンセル用にAbortControllerを使う（連続リクエスト対策）
   if (fetchController) fetchController.abort();
   fetchController = new AbortController();
 
@@ -101,17 +121,18 @@ const onSuggestionClick = (index) => {
 };
 
 const submitSearch = () => {
-  if (!query.value.trim()) return;
+  const trimmed = query.value.trim();
+  if (!trimmed) return;
   suggestions.value = [];
   selectedIndex.value = -1;
-  router.push({ path: "/s", query: { q: query.value.trim() } });
+  emit("search", trimmed);
 };
 
-const onSubmit = (e) => {
-  e.preventDefault();
+const onSubmit = () => {
   submitSearch();
 };
 </script>
+
 
 <style scoped>
 .header-search {
@@ -129,7 +150,7 @@ const onSubmit = (e) => {
   outline: none;
   font-size: 1rem;
   box-sizing: border-box;
-  height: 50px;
+  height: 45px;
 }
 
 .search-button {
@@ -141,7 +162,7 @@ const onSubmit = (e) => {
   padding: 0 1em;
   font-size: 1.1rem;
   user-select: none;
-  height: 50px;
+  height: 45px;
   line-height: 1;
   display: flex;
   align-items: center;
