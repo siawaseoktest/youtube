@@ -1,16 +1,37 @@
 import express from "express";
-const router = express.Router();
+import { Innertube } from "youtubei.js";
 
-// 仮の動画詳細API（YouTube Data APIやInvidious APIをここで呼び出し）
-// ここは環境に合わせて実装してください
+const router = express.Router();
+let youtube;
+
+(async () => {
+  youtube = await Innertube.create({
+    lang: "ja",
+    location: "JP",
+    retrieve_player: true,
+  });
+})();
+
 router.get("/:id", async (req, res) => {
   const videoId = req.params.id;
+
+  if (!videoId) {
+    return res.status(400).json({ error: "無効な動画IDです。" });
+  }
+
   try {
-    // YouTube APIなどを叩く処理を入れる
-    // 今回は簡易的に動画IDだけ返す例
-    res.json({ id: videoId, title: `動画タイトル(${videoId})`, description: "説明文" });
+    if (!youtube) {
+      return res.status(503).json({ error: "YouTubeクライアントが未初期化です。" });
+    }
+
+    // 動画情報全体を取得（加工せず）
+    const videoInfo = await youtube.getInfo(videoId);
+
+    // 取得した動画情報をJSONとして直接返す
+    res.json(videoInfo);
   } catch (err) {
-    res.status(500).json({ error: "動画情報取得失敗" });
+    console.error(`[ERROR][${videoId}]`, err);
+    res.status(500).json({ error: "動画情報の取得に失敗しました。" });
   }
 });
 
