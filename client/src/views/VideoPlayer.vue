@@ -10,11 +10,58 @@
         ></iframe>
       </div>
 
-      <h1 class="video-title">{{ title }}</h1>
-      <div class="video-meta">
-        <span>{{ viewCount }}</span>
-        <span class="dot">・</span>
+      <h1 class="video-title" ref="videoTitle">{{ title }}</h1>
+        <div class="video-info channel-info">
+        <a
+          :href="`https://www.youtube.com/channel/${authorId}`"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="channel-icon-link"
+        >
+          <img
+            :src="authorThumbnailUrl"
+            alt="チャンネルアイコン"
+            class="channel-icon"
+            @error="onImageError($event, authorId)"
+          />
+        </a>
+        <div class="channel-text">
+          <a
+            :href="`https://www.youtube.com/channel/${authorId}`"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="channel-name"
+          >
+            {{ authorName }}
+          </a>
+          <p class="subscriber-count">{{ subscriberCount }}</p>
+        </div>
+        </div>
+      <div style="padding: 10px 10px 0 10px; border-radius: 8px; background-color: rgba(0, 0, 0, 0.05);">
+        <div class="video-meta">
+        <span>{{ viewCount }}</span>・<span>高評価数{{ likeCount }}</span>
+        <span class="dot">　</span>
         <span>{{ relativeDate }}</span>
+        </div>
+        <div class="video-description">
+        <div v-if="!showFullDescription" class="description-preview">
+          <p v-if="descriptionRun0">{{ descriptionRun0 }}</p>
+          <p v-if="descriptionRun1">{{ descriptionRun1 }}</p>
+          <p v-if="descriptionRun2">{{ descriptionRun2 }}</p>
+        </div>
+        <div v-else class="description-full" v-html="formattedDescription"></div>
+
+        <span
+          class="description-toggle"
+          role="button"
+          tabindex="0"
+          @click="toggleDescription"
+          @keydown.enter="toggleDescription"
+          @keydown.space.prevent="toggleDescription"
+        >
+          {{ showFullDescription ? "一部を表示" : "...もっと見る" }}
+        </span>
+        </div>
       </div>
     </div>
 
@@ -78,6 +125,7 @@ export default {
       video: null,
       error: null,
       hoverId: null,
+      showFullDescription: false, 
     };
   },
   computed: {
@@ -90,6 +138,48 @@ export default {
     relativeDate() {
       return this.video?.primary_info?.relative_date?.text || "情報なし";
     },
+    likeCount() {
+      return this.video?.primary_info?.menu?.top_level_buttons?.[0]?.short_like_count || "情報なし";
+    },
+    subscriberCount() {
+      return this.video?.secondary_info?.owner?.subscriber_count?.text || "情報なし";
+    },
+    authorId() {
+      return this.video?.secondary_info?.owner?.author?.id || "情報なし";
+    },
+    authorName() {
+      return this.video?.secondary_info?.owner?.author?.name || "情報なし";
+    },
+    authorThumbnailUrl() {
+      return this.video?.secondary_info?.owner?.author?.thumbnails?.[0]?.url || "情報なし";
+    },
+    descriptionText() {
+      return this.video?.secondary_info?.description?.text || "情報なし";
+    },
+    formattedDescription() {
+      const rawText = this.video?.secondary_info?.description?.text || "情報なし";
+      return rawText
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/\n/g, "<br>");
+    },
+    shouldShowToggle() {
+      const text = this.descriptionRun3?.trim();
+      return text !== ""; // 空文字でなければ表示
+    },
+    descriptionRun0() {
+      return this.video?.secondary_info?.description?.runs?.[0]?.text || "情報なし";
+    },
+    descriptionRun1() {
+      return this.video?.secondary_info?.description?.runs?.[1]?.text || "";
+    },
+    descriptionRun2() {
+      return this.video?.secondary_info?.description?.runs?.[2]?.text || "";
+    },
+    descriptionRun3() {
+      return this.video?.secondary_info?.description?.runs?.[3]?.text || "";
+    },
     relatedVideos() {
       const feed = this.video?.watch_next_feed || [];
       return feed.map((item) => {
@@ -100,7 +190,7 @@ export default {
         const metadataRows = item.metadata?.metadata?.metadata_rows || [];
 
         return {
-          badge: badgeText, // 動画時間やライブなどのバッジ文字列
+          badge: badgeText, 
           previewUrl,
           title: item.metadata?.title?.text || "",
           metadataRow1: metadataRows[0]?.metadata_parts?.[0]?.text?.text || "",
@@ -121,6 +211,15 @@ export default {
         event.target.dataset.error = true;
       }
     },
+    toggleDescription() {
+      this.showFullDescription = !this.showFullDescription;
+      this.$nextTick(() => {
+        const el = this.$refs.videoTitle;
+        if (el?.scrollIntoView) {
+          el.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+      });
+    },
   },
   async created() {
     try {
@@ -136,6 +235,101 @@ export default {
 </script>
 
 <style scoped>
+p {
+    display: block;
+    margin-block-start: 1em;
+    margin-block-end: 0.8em;
+    margin-inline-start: 0px;
+    margin-inline-end: 0px;
+    unicode-bidi: isolate;
+}
+.channel-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.channel-icon-link {
+  flex-shrink: 0;
+  display: block;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  overflow: hidden;
+}
+
+.channel-icon {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  border-radius: 50%;
+}
+
+.channel-text {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 0;
+}
+
+.channel-name {
+  font-weight: 500;
+  font-size: 1rem;
+  color: #030303;
+  text-decoration: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.channel-name:hover,
+.channel-name:focus {
+  text-decoration: underline;
+}
+
+.subscriber-count {
+  font-size: 0.85rem;
+  color: #606060;
+  margin: 2px 0 0 0;
+  white-space: nowrap;
+}
+.video-info p {
+  font-size: 0.875rem;      /* 少し小さめ */
+  color: #606060;           /* YouTube説明欄のグレー */
+  margin: 0 0 4px 0;
+  line-height: 1.4;
+  font-weight: 400;
+}
+.video-description {
+  font-size: 0.9rem;
+  color: #030303;
+  line-height: 1.5;
+  margin-top: 12px;
+  margin-bottom: 15px;
+  white-space: pre-wrap;   /* 改行をそのまま反映 */
+  word-break: break-word;
+}
+.description-preview p {
+  margin: 0 0 0.4em 0;
+}
+.description-full {
+  margin: 0;
+}
+.description-toggle {
+  display: inline-block;
+  color: #065fd4;           /* YouTube青リンク色 */
+  font-weight: 500;
+  font-size: 0.875rem;
+  cursor: pointer;
+  user-select: none;
+  padding: 2px 6px;
+  border-radius: 4px;
+  transition: background-color 0.2s ease;
+  margin-top: 4px;
+}
+
 .page-container {
   display: flex;
   gap: 24px;
@@ -174,7 +368,7 @@ export default {
 
 .video-meta {
   font-size: 0.9rem;
-  color: #606060;
+  color: #000000;
   margin-bottom: 16px;
 }
 
@@ -203,9 +397,9 @@ export default {
 }
 
 .thumb-wrapper {
-  position: relative; /* 重要：バッジの絶対配置基準 */
+  position: relative; 
   width: 168px;
-  height: 94.5px; /* 16:9 */
+  height: 94.5px; 
   flex-shrink: 0;
   overflow: hidden;
   border-radius: 4px;
@@ -230,17 +424,13 @@ export default {
   font-size: 0.75rem;
   font-weight: 500;
   border-radius: 2px;
-  line-height: 1;
   pointer-events: none;
   user-select: none;
   z-index: 10;
 }
-
-/* 「ライブ」バッジは赤背景 */
 .badge-live {
   background: #e62117;
 }
-
 .video-info {
   flex: 1;
 }
@@ -255,7 +445,6 @@ export default {
   -webkit-box-orient: vertical;
   overflow: hidden;
   text-overflow: ellipsis;
-  margin-bottom: 4px;
 }
 
 .video-metadata {
