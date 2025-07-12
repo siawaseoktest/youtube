@@ -5,6 +5,7 @@ import suggestRouter from "./routes/suggest.js";
 import searchRouter from "./routes/search.js";
 import videoRouter from "./routes/video.js"; 
 import commentRoute from "./routes/comment.js";
+import channelRoute from "./routes/channel.js";
 
 
 
@@ -20,6 +21,7 @@ app.use("/api/search", searchRouter);
 app.use("/api/suggest", suggestRouter);
 app.use("/api/video", videoRouter);
 app.use("/api/comments", commentRoute);
+app.use("/api/channel", channelRoute);
 
 
 // GitHubのtrend.jsonを返すAPI
