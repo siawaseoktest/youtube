@@ -21,6 +21,16 @@
         class="search-input"
         aria-label="Search"
       />
+      <!-- 🔍検索ボタンの前に追加 -->
+<button
+  v-if="query"
+  type="button"
+  class="clear-button"
+  @click="clearQuery"
+  aria-label="入力をクリア"
+>
+  ×
+</button>
 
       <button type="submit" class="search-button" aria-label="検索">
         <img
@@ -135,9 +145,38 @@ const submitSearch = () => {
 const onSubmit = () => {
   submitSearch();
 };
+const clearQuery = () => {
+  query.value = "";
+  suggestions.value = [];
+  selectedIndex.value = -1;
+};
+
 </script>
 
 <style scoped>
+.clear-button {
+  position: absolute;
+  right: 1.9em;
+  bottom: -1px; 
+  background: transparent;
+  border: none;
+  font-size: 1.5em;
+  cursor: pointer;
+  color: #555;
+  padding: 0 0.5em;
+  height: calc(100% - 1px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  user-select: none;
+  transition: color 0.2s ease;
+}
+
+.clear-button:hover {
+  color: #000; 
+}
+
 .header-wrapper {
   display: flex;
   align-items: center;

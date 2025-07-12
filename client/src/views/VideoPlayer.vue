@@ -47,7 +47,6 @@
         <div v-if="!showFullDescription" class="description-preview">
           <p v-if="descriptionRun0">{{ descriptionRun0 }}</p>
           <p v-if="descriptionRun1">{{ descriptionRun1 }}</p>
-          <p v-if="descriptionRun2">{{ descriptionRun2 }}</p>
         </div>
         <div v-else class="description-full" v-html="formattedDescription"></div>
 
@@ -75,6 +74,7 @@
           @mouseenter="hoverId = r.videoId"
           @mouseleave="hoverId = null"
         >
+          <router-link :to="`/watch?v=${r.videoId}`" class="page-link">
           <div class="thumb-wrapper">
             <img
               v-if="hoverId !== r.videoId || !r.previewUrl"
@@ -98,14 +98,16 @@
               {{ r.badge }}
             </span>
           </div>
-
+          </router-link> 
+          <router-link :to="`/watch?v=${r.videoId}`" class="page-link">
           <div class="video-info">
             <span class="video-title-related" :title="r.title">{{ r.title }}</span>
-            <span class="video-metadata">
-              {{ r.metadataRow1 }}<br>
+            <div class="video-metadata">
+              <div class="one-line">{{ r.metadataRow1 }}</div>
               {{ r.metadataRow2Part1 }}<span class="dot">・</span>{{ r.metadataRow2Part2 }}
-            </span>
+            </div>
           </div>
+          </router-link>
         </li>
       </ul>
     </aside>
@@ -114,7 +116,6 @@
     <p v-else class="loading-msg">読み込み中...</p>
   </div>
 </template>
-
 <script>
 export default {
   props: {
@@ -125,12 +126,12 @@ export default {
       video: null,
       error: null,
       hoverId: null,
-      showFullDescription: false, 
+      showFullDescription: false,
     };
   },
   computed: {
     viewCount() {
-      return this.video?.primary_info?.view_count?.short_view_count?.text || "情報なし";
+      return this.video?.primary_info?.view_count?.short_view_count?.text || this.video?.primary_info?.view_count?.view_count?.text || "情報なし";
     },
     title() {
       return this.video?.primary_info?.title?.text || "情報なし";
@@ -166,7 +167,7 @@ export default {
     },
     shouldShowToggle() {
       const text = this.descriptionRun3?.trim();
-      return text !== ""; // 空文字でなければ表示
+      return text !== "";
     },
     descriptionRun0() {
       return this.video?.secondary_info?.description?.runs?.[0]?.text || "情報なし";
@@ -190,7 +191,7 @@ export default {
         const metadataRows = item.metadata?.metadata?.metadata_rows || [];
 
         return {
-          badge: badgeText, 
+          badge: badgeText,
           previewUrl,
           title: item.metadata?.title?.text || "",
           metadataRow1: metadataRows[0]?.metadata_parts?.[0]?.text?.text || "",
@@ -202,6 +203,20 @@ export default {
     },
   },
   methods: {
+    async fetchVideoData(id) {
+      try {
+        this.video = null;
+        this.error = null;
+
+        const res = await fetch(`/api/video/${id}`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+        this.video = await res.json();
+      } catch (err) {
+        console.error("動画取得失敗:", err);
+        this.error = "動画の情報を取得できませんでした。";
+      }
+    },
     getPrimaryThumbnail(id) {
       return `https://i.ytimg.com/vi/${id}/hqdefault.jpg`;
     },
@@ -221,22 +236,26 @@ export default {
       });
     },
   },
-  async created() {
-    try {
-      const res = await fetch(`/api/video/${this.videoId}`);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      this.video = await res.json();
-    } catch (err) {
-      console.error("動画取得失敗:", err);
-      this.error = "動画の情報を取得できませんでした。";
-    }
+  watch: {
+    videoId: {
+      immediate: true,
+      handler(newId) {
+        this.fetchVideoData(newId);
+      },
+    },
   },
 };
 </script>
 
 <style scoped>
+.one-line {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  width: 180px; 
+}
+
 p {
-    display: block;
     margin-block-start: 1em;
     margin-block-end: 0.8em;
     margin-inline-start: 0px;
@@ -250,6 +269,9 @@ p {
   margin-bottom: 12px;
 }
 
+.page-link{
+  text-decoration: none;
+}
 .channel-icon-link {
   flex-shrink: 0;
   display: block;
@@ -276,7 +298,7 @@ p {
 
 .channel-name {
   font-weight: 500;
-  font-size: 1rem;
+  font-size: 1.1rem;
   color: #030303;
   text-decoration: none;
   white-space: nowrap;
@@ -296,8 +318,8 @@ p {
   white-space: nowrap;
 }
 .video-info p {
-  font-size: 0.875rem;      /* 少し小さめ */
-  color: #606060;           /* YouTube説明欄のグレー */
+  font-size: 0.8rem;  
+  color: #606060; 
   margin: 0 0 4px 0;
   line-height: 1.4;
   font-weight: 400;
@@ -311,8 +333,10 @@ p {
   white-space: pre-wrap;   /* 改行をそのまま反映 */
   word-break: break-word;
 }
-.description-preview p {
-  margin: 0 0 0.4em 0;
+.description-preview {
+  max-height: 120px;       
+  overflow: hidden;  
+  margin: 0 0 0.4em 0;      
 }
 .description-full {
   margin: 0;
@@ -448,7 +472,7 @@ p {
 }
 
 .video-metadata {
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   color: #606060;
 }
 
