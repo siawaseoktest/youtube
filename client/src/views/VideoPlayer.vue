@@ -62,6 +62,7 @@
         </span>
         </div>
       </div>
+      <Comment :videoId="videoId" />
     </div>
 
     <aside v-if="relatedVideos.length" class="related-section">
@@ -116,6 +117,11 @@
     <p v-else class="loading-msg">読み込み中...</p>
   </div>
 </template>
+
+<script setup>
+import Comment from "@/components/Comment.vue";
+</script>
+
 <script>
 export default {
   props: {

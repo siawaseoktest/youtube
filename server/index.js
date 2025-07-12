@@ -4,6 +4,7 @@ import ytimg from "./yt-img.js";
 import suggestRouter from "./routes/suggest.js"; 
 import searchRouter from "./routes/search.js";
 import videoRouter from "./routes/video.js"; 
+import commentRoute from "./routes/comment.js";
 
 
 
@@ -18,6 +19,8 @@ app.use("/", ytimg);
 app.use("/api/search", searchRouter);
 app.use("/api/suggest", suggestRouter);
 app.use("/api/video", videoRouter);
+app.use("/api/comments", commentRoute);
+
 
 // GitHubのtrend.jsonを返すAPI
 app.get("/api/trend", async (req, res) => {
