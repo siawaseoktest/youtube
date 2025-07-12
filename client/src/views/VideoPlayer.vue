@@ -158,7 +158,7 @@ export default {
       return this.video?.secondary_info?.description?.text || "情報なし";
     },
     formattedDescription() {
-      const rawText = this.video?.secondary_info?.description?.text || "情報なし";
+      const rawText = this.video?.secondary_info?.description?.text || "この動画には説明が追加されていません。";
       return rawText
         .replace(/&/g, "&amp;")
         .replace(/</g, "&lt;")
