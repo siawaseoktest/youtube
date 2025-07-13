@@ -77,6 +77,7 @@ router.get("/:id", async (req, res) => {
       videoCount: header.content?.metadata?.metadata_rows?.[1]?.metadata_parts?.[0]?.text?.text ?? "",
       description: metadata.description ?? "",
       topVideo: {
+        title: topVideo.title?.text ?? "",
         videoId: topVideo.id ?? "",
         viewCount: topVideo.view_count?.text ?? "",
         published: topVideo.published_time?.text ?? "",

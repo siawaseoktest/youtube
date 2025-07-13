@@ -14,7 +14,7 @@
         class="avatar"
       />
       <div class="info">
-        <h1 style="font-size: 2em; margin-block-end: 0.67em;">{{ channel.title }}</h1>
+        <h1 style="font-size: 2.1em; margin-block-end: 0.4em;">{{ channel.title }}</h1>
         <p class="video-count">{{ channel.videoCount }}</p>
         <p class="description">{{ channel.description }}</p>
       </div>
@@ -22,8 +22,21 @@
 
     <!-- タブ -->
     <div class="tabs">
-      <button :class="{ active: tab === 'home' }" @click="tab = 'home'">ホーム</button>
-      <button :class="{ active: tab === 'videos' }" @click="tab = 'videos'">動画</button>
+      <div
+        :class="{ active: tab === 'home' }"
+        role="button"
+        tabindex="0"
+        @click="tab = 'home'"
+        @keydown.enter.space.prevent="tab = 'home'"
+        style="margin-right: 24px;"
+      >ホーム</div>
+      <div
+        :class="{ active: tab === 'videos' }"
+        role="button"
+        tabindex="0"
+        @click="tab = 'videos'"
+        @keydown.enter.space.prevent="tab = 'videos'"
+      >動画</div>
     </div>
 
     <!-- ホームタブ -->
@@ -46,6 +59,7 @@
             </span>       
           </div>
           <div class="top-video-info">
+            <h3 style="margin-block-start: 0em; font-size: 1.45em; margin-block-end: 0.5em;">{{ channel.topVideo.title }}</h3>
             <p><strong>再生回数:</strong> {{ channel.topVideo.viewCount }}</p>
             <p><strong>投稿日:</strong> {{ channel.topVideo.published }}</p>
             <p class="description-text" v-html="channel.topVideo.description"></p>
@@ -87,7 +101,6 @@
     </div>
     <!-- 動画タブ -->
     <div v-else-if="tab === 'videos'" class="tab-content">
-      <h3>動画一覧</h3>
         <VideoList :playlist-id="channel.uploadsPlaylistId" displayType="channel" />
     </div>
   </section>
@@ -270,22 +283,18 @@ onMounted(async () => {
   display: flex;
   gap: 8px;
   margin-bottom: 1.5rem;
-}
-
-.tabs button {
-  flex-grow: 1;
   padding: 10px 0;
+  border-radius: 0;
   border: none;
   border-radius: 6px;
-  background: #eee;
+  background: #ffffff;
   cursor: pointer;
-  font-weight: 600;
-  transition: background-color 0.3s;
+  font-size: 1.3rem;
 }
 
-.tabs button.active {
-  background: #222;
-  color: white;
+.tabs .active {
+  border-bottom: 2px solid rgb(0, 0, 0);
+  color: rgb(0, 0, 0);
 }
 
 .tab-content {
@@ -308,8 +317,8 @@ onMounted(async () => {
 
 .thumbnail-wrapper {
   position: relative;
-  width: 320px;
-  height: 180px;
+  width: 400px;
+  height: 224px;
   flex-shrink: 0;
 }
 
@@ -356,7 +365,7 @@ onMounted(async () => {
   text-overflow: ellipsis;
   display: -webkit-box;
   -webkit-box-orient: vertical;
-  max-height: 150px;
+  max-height: 120px;
   color: #444;
   margin-top: 8px;
 }
