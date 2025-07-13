@@ -143,7 +143,7 @@ export default {
       return this.video?.primary_info?.title?.text || "情報なし";
     },
     relativeDate() {
-      return this.video?.primary_info?.relative_date?.text || "情報なし";
+      return this.video?.primary_info?.relative_date?.text || "";
     },
     likeCount() {
       return this.video?.primary_info?.menu?.top_level_buttons?.[0]?.short_like_count || "情報なし";

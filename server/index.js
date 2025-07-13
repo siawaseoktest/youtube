@@ -6,8 +6,7 @@ import searchRouter from "./routes/search.js";
 import videoRouter from "./routes/video.js"; 
 import commentRoute from "./routes/comment.js";
 import channelRoute from "./routes/channel.js";
-
-
+import playlistRouter from "./routes/playlist.js";
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -22,7 +21,7 @@ app.use("/api/suggest", suggestRouter);
 app.use("/api/video", videoRouter);
 app.use("/api/comments", commentRoute);
 app.use("/api/channel", channelRoute);
-
+app.use("/api/playlist", playlistRouter);
 
 // GitHubのtrend.jsonを返すAPI
 app.get("/api/trend", async (req, res) => {

@@ -85,41 +85,19 @@
         </div>
       </section>
     </div>
-
     <!-- 動画タブ -->
     <div v-else-if="tab === 'videos'" class="tab-content">
       <h3>動画一覧</h3>
-      <ul class="video-list compact">
-        <li
-          v-for="(video, idx) in channel.videos"
-          :key="video.videoId || idx"
-          class="video-item"
-        >
-          <router-link :to="`/watch?v=${video.videoId}`" class="video-link">
-            <div class="thumbnail-wrapper small-thumb">
-              <img
-                :src="getPrimaryThumbnail(video.videoId)"
-                alt="動画サムネイル"
-                class="thumbnail"
-                @error="onImageError($event, video.videoId)"
-              />
-              <span class="duration" v-if="video.duration">{{ video.duration }}</span>
-            </div>
-            <p class="title" :title="video.title">{{ video.title }}</p>
-            <p class="author">{{ video.author }}</p>
-            <p class="meta">{{ video.viewCount }}・{{ video.published }}</p>
-          </router-link>
-        </li>
-      </ul>
+        <VideoList :playlist-id="channel.uploadsPlaylistId" displayType="channel" />
     </div>
   </section>
-
   <p v-else class="loading">読み込み中...</p>
 </template>
 
 <script setup>
 import { ref, onMounted } from "vue";
 import { useRoute } from "vue-router";
+import VideoList from "@/components/Playlist.vue";
 
 const route = useRoute();
 const channelId = route.params.id;
@@ -154,7 +132,6 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-
 .playlist-items-scroll {
   display: flex;
   gap: 12px;

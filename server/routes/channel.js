@@ -51,7 +51,6 @@ router.get("/:id", async (req, res) => {
     });
 
     // 動画一覧（チャンネル全動画プレイリスト用）
-    // ここは channel.videos?.items があれば対応
     const videos = (channel.videos?.items ?? []).map(v => ({
       videoId: v.id,
       title: v.title,
@@ -61,6 +60,13 @@ router.get("/:id", async (req, res) => {
       viewCount: v.view_count?.text || "不明",
       thumbnail: v.thumbnail?.[0]?.url ?? "",
     }));
+
+    // ここでチャンネルIDからアップロード動画用プレイリストIDを生成
+    // チャンネルIDの先頭が "UC" の場合のみ対応
+    let uploadsPlaylistId = "";
+    if (channelId.startsWith("UC")) {
+      uploadsPlaylistId = "UU" + channelId.slice(2);
+    }
 
     // 整形レスポンス
     const response = {
@@ -78,6 +84,7 @@ router.get("/:id", async (req, res) => {
       },
       playlists,
       videos,
+      uploadsPlaylistId, // ここに追加
     };
 
     res.json(response);

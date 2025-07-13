@@ -1,39 +1,47 @@
+// router/index.js
 import { createRouter, createWebHistory } from "vue-router";
-
-// 各ページのVueコンポーネントを読み込み
 import HomeView from "@/views/HomeView.vue";
 import VideoPlayer from "@/views/VideoPlayer.vue";
 import SearchView from "@/views/SearchView.vue";
-import ChannelView from "@/views/ChannelView.vue"; // チャンネルページを追加
+import ChannelView from "@/views/ChannelView.vue";
+import Playlist from "@/components/Playlist.vue"; // ✅ 追加
 
 const routes = [
   {
-    path: "/", // ホーム画面
+    path: "/", // ホーム
     name: "Home",
     component: HomeView,
   },
   {
-    path: "/watch", // 動画再生ページ（クエリ: v=動画ID）
+    path: "/watch",
     name: "VideoPlayer",
     component: VideoPlayer,
     props: (route) => ({ videoId: route.query.v }),
   },
   {
-    path: "/search", // 検索結果ページ（クエリ: q=検索ワード）
+    path: "/search",
     name: "Search",
     component: SearchView,
     props: (route) => ({ query: route.query.q || "" }),
   },
   {
-    path: "/channel/:id", // チャンネルページ（パラメータ: id=チャンネルID）
+    path: "/channel/:id",
     name: "Channel",
     component: ChannelView,
     props: (route) => ({ channelId: route.params.id }),
   },
+  {
+    path: "/playlist", // ✅ ここ！ クエリで list=xxx を受け取る
+    name: "Playlist",
+    component: Playlist,
+    props: (route) => ({
+      playlistId: route.query.list || "", 
+    }),
+  },
 ];
 
 const router = createRouter({
-  history: createWebHistory(), // 通常のURL構造を使う（#なし）
+  history: createWebHistory(),
   routes,
 });
 
