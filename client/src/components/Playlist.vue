@@ -25,7 +25,7 @@
         :class="{ active: item.videoId === playVideoId }"
         :data-video-id="item.videoId"
       >
-        <router-link :to="`/watch?v=${item.videoId}`" class="video-link">
+        <router-link :to="displayType !== 'channel' ? `/watch?v=${item.videoId}&list=${playlist.playlistId}` : `/watch?v=${item.videoId}`" class="video-link">
           <div v-if="displayType === 'watch'" class="watch-layout">
             <div class="thumbnail-wrapper small-thumb">
               <img

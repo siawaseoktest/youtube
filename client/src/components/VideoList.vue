@@ -25,7 +25,10 @@
               {{ video.title }}
             </router-link>
           </h3>
-
+          <router-link
+            :to="`/channel/${video.channelId}`"
+            class="channel-link"
+          >
           <div class="channel-info">
             <img
               :src="video.channelIcon"
@@ -33,14 +36,8 @@
               class="channel-icon"
               @error="onChannelIconError"
             />
-            <a
-              :href="`https://www.youtube.com/channel/${video.channelId}`"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
               {{ video.channel }}
-            </a>
-          </div>
+          </div></router-link>
 
           <p>
             {{ formatViewCount(video.viewCount) }}回視聴・{{
@@ -52,6 +49,7 @@
     </ul>
   </section>
 </template>
+
 
 
 <script>
@@ -161,7 +159,15 @@ export default {
 </script>
 
 <style scoped>
-  
+a,
+.router-link,
+.router-link-exact-active,
+.channel-link,
+.title-link,
+.thumbnail-link {
+  text-decoration: none;
+}
+
 html, body {
   margin: 0;
   padding: 0;
@@ -262,6 +268,7 @@ html, body {
   align-items: center;
   gap: 0.5rem;
   margin-bottom: 0.3rem;
+  color: #000;
 }
 
 .channel-icon {
