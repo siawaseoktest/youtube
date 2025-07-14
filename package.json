@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "start": "concurrently \"node server/index.js\" \"npm run dev --prefix client\"",
+    "start": "node server/index.js",
     "postinstall": "npm install --prefix client"
   },
   "dependencies": {
