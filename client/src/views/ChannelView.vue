@@ -73,7 +73,7 @@
           :key="playlist.playlistId || index"
           class="playlist-wrapper"
         >
-          <h2 class="playlist-title">{{ playlist.title }}</h2>
+          <h2 class="playlist-title">{{ playlist.title }}<router-link :to="`/playlist?list=${playlist.playlistId}`" class="playlist-video-link-to">▶ 全てを再生 </router-link></h2>
           <div class="playlist-items-scroll">
             <div
               v-for="(item, idx) in playlist.items"
@@ -145,6 +145,28 @@ onMounted(async () => {
 </script>
 
 <style scoped>
+.playlist-video-link-to {
+  font-size: 16px;
+  font-weight: normal;
+  color: #333333;
+  text-decoration: none;
+  position: relative;
+  cursor: pointer;
+}
+
+.playlist-video-link-to::before {
+  content: "";
+  display: inline-block;
+  width: 20px; 
+}
+
+.playlist-video-link-to:hover {
+  text-decoration: underline;
+  text-decoration-color: #222;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px; 
+}
+
 .playlist-items-scroll {
   display: flex;
   gap: 12px;

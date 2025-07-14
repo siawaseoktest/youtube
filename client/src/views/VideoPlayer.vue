@@ -12,10 +12,8 @@
 
       <h1 class="video-title" ref="videoTitle">{{ title }}</h1>
         <div class="video-info channel-info">
-        <a
-          :href="`https://www.youtube.com/channel/${authorId}`"
-          target="_blank"
-          rel="noopener noreferrer"
+        <router-link
+          :to="`/channel/${authorId}`"
           class="channel-icon-link"
         >
           <img
@@ -24,16 +22,14 @@
             class="channel-icon"
             @error="onImageError($event, authorId)"
           />
-        </a>
+        </router-link>
         <div class="channel-text">
-          <a
-            :href="`https://www.youtube.com/channel/${authorId}`"
-            target="_blank"
-            rel="noopener noreferrer"
+          <router-link
+            :to="`/channel/${authorId}`"
             class="channel-name"
           >
             {{ authorName }}
-          </a>
+          </router-link>
           <p class="subscriber-count">{{ subscriberCount }}</p>
         </div>
         </div>

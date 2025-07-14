@@ -5,18 +5,33 @@ const router = express.Router();
 
 let youtube;
 
-// 初期化（最初に一度だけ）
+// YouTube APIの初期化（アプリ起動時に一度だけ）
 (async () => {
-  youtube = await Innertube.create({
-    lang: "ja",
-    location: "JP",
-    retrieve_player: false,
-  });
+  try {
+    youtube = await Innertube.create({
+      lang: "ja",
+      location: "JP",
+      retrieve_player: false,
+    });
+    console.log("YouTube API 初期化完了");
+  } catch (initError) {
+    console.error("YouTube API 初期化失敗:", initError);
+  }
 })();
+
+// プレイリストIDを正規化（長すぎる場合は先頭2文字を削除）
+function normalizePlaylistId(id = "") {
+  return id.length > 34 ? id.slice(2) : id;
+}
 
 // GET /api/channel/:id
 router.get("/:id", async (req, res) => {
   const channelId = req.params.id;
+
+  // 初期化されていない場合
+  if (!youtube) {
+    return res.status(503).json({ error: "YouTube APIがまだ初期化されていません" });
+  }
 
   try {
     const channel = await youtube.getChannel(channelId);
@@ -26,18 +41,27 @@ router.get("/:id", async (req, res) => {
     const currentTab = channel.current_tab ?? {};
     const contents = currentTab?.content?.contents ?? [];
 
+    // チャンネルトップ動画（動画タブの先頭動画）
     const topVideo = contents?.[0]?.contents?.[0] ?? {};
 
-    // プレイリストセクションのみ抽出
-    const playlistSections = contents.slice(1).filter(c => c.type === "ItemSection");
+    // プレイリストセクションを抽出（"他のチャンネル" セクションは除外）
+    const playlistSections = contents.slice(1).filter(c => {
+      if (c.type !== "ItemSection") return false;
+      const title = c?.contents?.[0]?.title?.text ?? "";
+      return title !== "他のチャンネル";
+    });
 
+    // プレイリスト情報をマップ
     const playlists = playlistSections.map(section => {
       const content = section?.contents?.[0];
       const items = content?.content?.items ?? [];
 
+      const rawPlaylistId = content?.title?.endpoint?.payload?.browseId ?? "";
+      const playlistId = normalizePlaylistId(rawPlaylistId);
+
       return {
         title: content?.title?.text ?? "",
-        playlistId: content?.title?.endpoint?.payload?.browseId ?? "",
+        playlistId,
         items: items.map(item => ({
           videoId: item.video_id,
           title: item.title?.text ?? "",
@@ -45,30 +69,18 @@ router.get("/:id", async (req, res) => {
           published: item.published?.text ?? "",
           author: item.author?.name ?? metadata.title ?? "",
           viewCount: item.short_view_count?.text || item.views?.text || "不明",
-          thumbnail: item.thumbnail?.[0]?.url ?? "", 
+          thumbnail: item.thumbnail?.[0]?.url ?? "",
         }))
       };
     });
 
-    // 動画一覧（チャンネル全動画プレイリスト用）
-    const videos = (channel.videos?.items ?? []).map(v => ({
-      videoId: v.id,
-      title: v.title,
-      duration: v.duration_text || "",
-      published: v.published_time_text || "",
-      author: v.author?.name || "",
-      viewCount: v.view_count?.text || "不明",
-      thumbnail: v.thumbnail?.[0]?.url ?? "",
-    }));
-
-    // ここでチャンネルIDからアップロード動画用プレイリストIDを生成
-    // チャンネルIDの先頭が "UC" の場合のみ対応
+    // "UCxxxx" → "UUxxxx" に変換（アップロード用プレイリストID）
     let uploadsPlaylistId = "";
     if (channelId.startsWith("UC")) {
       uploadsPlaylistId = "UU" + channelId.slice(2);
     }
 
-    // 整形レスポンス
+    // 最終レスポンスデータ整形
     const response = {
       channelId,
       title: metadata.title ?? "",
@@ -78,20 +90,19 @@ router.get("/:id", async (req, res) => {
       description: metadata.description ?? "",
       topVideo: {
         title: topVideo.title?.text ?? "",
-        videoId: topVideo.id ?? "",
+        videoId: topVideo.id ?? topVideo.video_id ?? "",
         viewCount: topVideo.view_count?.text ?? "",
         published: topVideo.published_time?.text ?? "",
         description: (topVideo.description?.text ?? "").replace(/\n/g, "<br>"),
       },
       playlists,
-      videos,
-      uploadsPlaylistId, // ここに追加
+      uploadsPlaylistId,
     };
 
     res.json(response);
   } catch (err) {
-    console.error("チャンネル情報取得エラー:", err);
-    res.status(500).json({ error: "サーバー内部エラー" });
+    console.error(`チャンネル[${channelId}]情報取得エラー:`, err?.message || err);
+    res.status(500).json({ error: "チャンネル情報の取得中にエラーが発生しました" });
   }
 });
 
