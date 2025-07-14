@@ -66,6 +66,12 @@
     </div>
 
     <aside v-if="relatedVideos.length" class="related-section">
+        <PlaylistComponent
+        v-if="playlistId"
+        displayType="watch"
+        :playlistId="playlistId"
+        :playVideoId="videoId"
+        />
       <h3 class="related-title">関連動画</h3>
       <ul class="related-list">
         <li
@@ -119,7 +125,14 @@
 </template>
 
 <script setup>
+import { computed, watch } from "vue";
+import { useRoute } from "vue-router";
+import PlaylistComponent from "@/components/Playlist.vue";
 import Comment from "@/components/Comment.vue";
+
+const route = useRoute();
+const videoId = computed(() => route.query.v);
+const playlistId = computed(() => route.query.list);
 </script>
 
 <script>

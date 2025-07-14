@@ -1,6 +1,6 @@
 <template>
   <section class="comments-section">
-    <h2>{{ totalCommentCount }}</h2>
+    <h2 v-if="totalCommentCount !== null">{{ totalCommentCount }}</h2>
 
     <ul v-if="comments.length > 0" class="comment-list">
       <li v-for="(c, i) in comments" :key="c.id || i" class="comment-item">
@@ -14,8 +14,30 @@
           loading="lazy"
         />
         <div class="comment-content">
-          <div class="comment-header"><div class="comment-author">{{ c.author }}</div><span class="comment-meta comment-date">{{ c.date }}</span></div>
-          <div class="comment-text">{{ c.text }}</div>
+          <div class="comment-header">
+            <div class="comment-author">{{ c.author }}</div>
+            <span class="comment-meta comment-date">{{ c.date }}</span>
+          </div>
+
+          <!-- コメントテキスト -->
+          <div
+            class="comment-text"
+            :class="{ clamped: c.isClamped && !c.isExpanded, expanded: c.isExpanded }"
+            :data-index="i"
+          >
+            {{ c.text }}
+          </div>
+
+          <!-- もっと見る / 閉じるボタン -->
+          <button
+            v-if="c.isClamped"
+            @click="toggleExpand(i)"
+            class="read-more-btn"
+            type="button"
+          >
+            {{ c.isExpanded ? "閉じる" : "もっと見る" }}
+          </button>
+
           <div class="comment-meta">
             <span class="comment-likes">👍 {{ c.likes }}</span>
           </div>
@@ -27,21 +49,20 @@
     <p v-if="error" class="error-msg">⚠️ {{ error }}</p>
   </section>
 </template>
-
 <script>
 export default {
   name: "Comment",
   props: {
     videoId: {
       type: String,
-      required: true
-    }
+      required: true,
+    },
   },
   data() {
     return {
       comments: [],
       totalCommentCount: null,
-      error: null
+      error: null,
     };
   },
   watch: {
@@ -49,32 +70,46 @@ export default {
       immediate: true,
       handler() {
         this.fetchComments();
-      }
-    }
+      },
+    },
+  },
+  mounted() {
+    this.$nextTick(() => {
+      this.checkCommentsHeight();
+    });
+  },
+  updated() {
+    this.$nextTick(() => {
+      this.checkCommentsHeight();
+    });
   },
   methods: {
     async fetchComments() {
-      try {
-        this.error = null;
-        this.comments = [];
-        this.totalCommentCount = null;
+      this.error = null;
+      this.comments = [];
+      this.totalCommentCount = null;
 
+      try {
         const res = await fetch(`/api/comments/${this.videoId}`);
-        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+
+        if (!res.ok) {
+          throw new Error(`HTTP error! status: ${res.status}`);
+        }
 
         const data = await res.json();
 
-        this.totalCommentCount = data.totalCommentCount || null;
+        this.totalCommentCount = data.totalCommentCount ?? null;
 
         if (Array.isArray(data.comments)) {
           this.comments = data.comments.map((c, index) => ({
             id: c.id || index,
-            author: c.author,
-            authorIcon: c.authorIcon,
-            text: c.text,
-            date: c.date,
-            daysAgo: c.daysAgo,
+            author: c.author || "匿名",
+            authorIcon: c.authorIcon || null,
+            text: c.text || "",
+            date: c.date || "",
             likes: c.likes ?? 0,
+            isExpanded: false,
+            isClamped: false,
           }));
         } else {
           this.comments = [];
@@ -82,11 +117,41 @@ export default {
       } catch (err) {
         console.error("コメント取得エラー:", err);
         this.error = "コメントを読み込めませんでした。";
-        this.comments = [];
-        this.totalCommentCount = null;
       }
-    }
-  }
+    },
+
+    checkCommentsHeight() {
+      const commentTextElements = this.$el.querySelectorAll(".comment-text");
+
+      commentTextElements.forEach((el) => {
+        const index = Number(el.dataset.index);
+        if (index === undefined || !this.comments[index]) return;
+
+        const height = el.scrollHeight;
+
+        this.comments[index].isClamped = height > 250;
+
+        if (!this.comments[index].isExpanded && height <= 250) {
+          this.comments[index].isClamped = false;
+        }
+      });
+    },
+
+    toggleExpand(index) {
+      const comment = this.comments[index];
+      comment.isExpanded = !comment.isExpanded;
+
+      if (!comment.isExpanded) {
+        this.$nextTick(() => {
+          const commentItems = this.$el.querySelectorAll(".comment-item");
+          const el = commentItems[index];
+          if (el) {
+            el.scrollIntoView({ behavior: "smooth", block: "start" });
+          }
+        });
+      }
+    },
+  },
 };
 </script>
 
@@ -94,9 +159,10 @@ export default {
 .comment-header {
   display: flex;
   align-items: center;
-  gap: 8px; 
-  flex-wrap: wrap; 
+  gap: 8px;
+  flex-wrap: wrap;
 }
+
 .comments-section {
   padding: 16px;
   border-radius: 8px;
@@ -132,8 +198,38 @@ export default {
 }
 
 .comment-text {
-  margin: 4px 0;
+  max-width: 100%;
   white-space: pre-wrap;
+  word-break: break-word;
+  position: relative;
+}
+
+/* 省略状態：高さ制限とオーバーフロー制御 */
+.comment-text.clamped {
+  max-height: 250px;
+  overflow: hidden;
+}
+
+/* 展開状態：高さ制限解除 */
+.comment-text.expanded {
+  max-height: none;
+  overflow: visible;
+}
+
+/* もっと見るボタン */
+.read-more-btn {
+  background: none;
+  border: none;
+  color: #007bff;
+  cursor: pointer;
+  font-size: 0.9em;
+  margin-top: 4px;
+  padding: 0;
+  user-select: none;
+}
+
+.read-more-btn:hover {
+  text-decoration: underline;
 }
 
 .comment-meta {
@@ -142,10 +238,10 @@ export default {
   display: flex;
   gap: 8px;
   align-items: center;
+  margin-top: 8px;
 }
 
 .comment-date,
-.comment-days-ago,
 .comment-likes {
   user-select: none;
 }

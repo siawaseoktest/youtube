@@ -10,10 +10,14 @@
         動画本数: {{ playlist.totalItems }}
         <span class="views" v-if="displayType !== 'watch'">｜再生数: {{ playlist.views }}回</span>
       </p>
-
     </template>
 
-    <div class="playlist-items-scroll" :class="`scroll-${displayType}`">
+    <!-- スクロール対象コンテナに ref を追加 -->
+    <div
+      ref="scrollContainer"
+      class="playlist-items-scroll"
+      :class="`scroll-${displayType}`"
+    >
       <div
         v-for="(item, idx) in playlist.items"
         :key="item.videoId || idx"
@@ -65,7 +69,7 @@
 import { ref, onMounted, nextTick, computed } from "vue";
 import { useRoute } from "vue-router";
 
-// propsの定義（任意）
+// propsの定義
 const props = defineProps({
   playlistId: String,
   playVideoId: String,
@@ -81,11 +85,12 @@ const playlist = ref(null);
 const loading = ref(false);
 const error = ref(false);
 
-// playlistIdはprops優先、なければURLクエリのlistを使う
+// スクロール対象の要素への参照
+const scrollContainer = ref(null);
+
+// props優先のクエリ取得
 const playlistId = computed(() => props.playlistId || route.query.list || "");
-// playVideoIdもprops優先、なければURLクエリのplayを使う
 const playVideoId = computed(() => props.playVideoId || route.query.play || "");
-// displayTypeもprops優先、なければURLクエリのtypeを使う
 const displayType = computed(() => props.displayType || route.query.type || "default");
 
 onMounted(async () => {
@@ -99,7 +104,6 @@ onMounted(async () => {
   error.value = false;
 
   try {
-    // プレイリストAPIからデータ取得
     const res = await fetch(`/api/playlist/${playlistId.value}`);
     if (!res.ok) throw new Error(`HTTPエラー: ${res.status}`);
     playlist.value = await res.json();
@@ -109,19 +113,26 @@ onMounted(async () => {
 
     await nextTick();
 
-    // playVideoIdがあれば該当動画までスクロール
-    if (playVideoId.value) {
-      const target = document.querySelector(`.playlist-item[data-video-id="${playVideoId.value}"]`);
+    // 中央にスクロール
+    if (playVideoId.value && scrollContainer.value) {
+      const containerEl = scrollContainer.value;
+      const target = containerEl.querySelector(`.playlist-item[data-video-id="${playVideoId.value}"]`);
+
       if (target) {
-        target.scrollIntoView({
+        const containerRect = containerEl.getBoundingClientRect();
+        const targetRect = target.getBoundingClientRect();
+
+        const relativeTop = targetRect.top - containerRect.top;
+        const scrollOffset =
+          containerEl.scrollTop + relativeTop - containerEl.clientHeight / 2 + target.clientHeight / 2;
+
+        containerEl.scrollTo({
+          top: scrollOffset,
           behavior: "smooth",
-          block: "start",
         });
       }
     }
 
-    // displayTypeに応じた追加処理があればここで実装可能
-    // 例：if (displayType.value === 'watch') { ... }
   } catch (err) {
     console.error("プレイリスト取得失敗:", err);
     error.value = true;
@@ -130,12 +141,12 @@ onMounted(async () => {
   }
 });
 
-// サムネイルURL取得関数
+// サムネイルURL生成
 function getPrimaryThumbnail(id) {
   return `https://i.ytimg.com/vi/${id}/sddefault.jpg`;
 }
 
-// 画像読み込み失敗時に代替URLへ切り替え
+// エラー時の代替画像処理
 function onImageError(event, id) {
   if (!event.target.dataset.error) {
     event.target.src = `/api/yt-img?id=${id}`;
@@ -146,7 +157,7 @@ function onImageError(event, id) {
 
 <style scoped>
 .playlist-item.active {
-  background-color: #eee;
+  background-color: #DDEBE7F2;
 }
 
 .playlist-section {
@@ -155,11 +166,10 @@ function onImageError(event, id) {
   padding: 0.9rem;
 }
 
-/* type=watchのときは背景色なし、細い線で囲む */
 .type-watch {
   background-color: transparent;
-  border: 1px solid #ccc; /* 細めの線。色はお好みで調整してください */
-  border-radius: 8px; /* お好みで丸みを追加 */
+  border: 1px solid #ccc; 
+  border-radius: 8px;
   padding: 0.9rem;
   max-width: 360px;
 }
@@ -167,6 +177,7 @@ function onImageError(event, id) {
 .playlist-title {
   font-size: 1.4rem;
   margin-bottom: 0.2rem;
+  margin-block-start:0.3em;
 }
 
 .playlist-meta {
@@ -187,7 +198,7 @@ function onImageError(event, id) {
 .scroll-watch {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 5px;
   overflow-y: auto;
   max-height: 420px;
   padding-right: 6px;
@@ -214,6 +225,8 @@ function onImageError(event, id) {
   aspect-ratio: 16 / 9;
   overflow: hidden;
   border-radius: 0.5rem;
+  margin-block: 10px; 
+  margin-left: 8px
 }
 
 .thumbnail-wrapper.small-thumb {
