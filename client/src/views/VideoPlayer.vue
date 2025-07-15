@@ -258,6 +258,11 @@ export default {
         this.fetchVideoData(newId);
       },
     },
+    title(newTitle) {
+      if (newTitle && newTitle !== "情報なし") {
+        document.title = newTitle;
+      }
+    },
   },
 };
 </script>

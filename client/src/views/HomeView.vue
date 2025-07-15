@@ -57,6 +57,7 @@ export default {
     },
   },
   created() {
+    document.title = "しあチューブ - ホーム"; 
     this.fetchTrendData();
   },
   methods: {

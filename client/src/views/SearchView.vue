@@ -37,6 +37,8 @@ export default {
     query: {
       immediate: true,
       handler(newQuery) {
+        document.title = newQuery ? `${newQuery} - 検索` : "検索結果";
+
         if (newQuery) {
           this.fetchSearchResults(newQuery);
         } else {

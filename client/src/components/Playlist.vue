@@ -111,6 +111,10 @@ onMounted(async () => {
     console.log("取得プレイリスト:", playlist.value);
     console.log("表示タイプ:", displayType.value);
 
+    if (displayType.value !== "watch" && displayType.value !== "channel" && playlist.value?.title) {
+      document.title = `${playlist.value.title} - プレイリスト`;
+    }
+
     await nextTick();
 
     // 中央にスクロール

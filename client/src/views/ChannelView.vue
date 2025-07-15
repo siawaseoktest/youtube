@@ -106,9 +106,8 @@
   </section>
   <p v-else class="loading">読み込み中...</p>
 </template>
-
 <script setup>
-import { ref, onMounted } from "vue";
+import { ref, onMounted, watch } from "vue";
 import { useRoute } from "vue-router";
 import VideoList from "@/components/Playlist.vue";
 
@@ -132,6 +131,7 @@ function onImageError(event, id) {
   }
 }
 
+// 非同期でチャンネル情報を取得
 onMounted(async () => {
   try {
     const res = await fetch(`/api/channel/${channelId}`);
@@ -142,6 +142,20 @@ onMounted(async () => {
     console.error("ChannelView エラー:", err);
   }
 });
+
+// channel.value の変更を監視し、タイトルを動的更新
+watch(
+  () => channel.value,
+  (newChannel) => {
+    if (newChannel && newChannel.title) {
+      document.title = `${newChannel.title}`;
+    } else {
+      // 取得前やエラー時のタイトル
+      document.title = "読み込み中…";
+    }
+  },
+  { immediate: true }
+);
 </script>
 
 <style scoped>
