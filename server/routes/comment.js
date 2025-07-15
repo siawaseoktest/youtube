@@ -24,7 +24,6 @@ router.get("/:videoId", async (req, res) => {
     const commentSection = await youtube.getComments(videoId);
     const commentThreads = commentSection.contents || [];
 
-    // 総コメント数の取得
     const totalCommentCountText = commentSection.header?.count?.text
       || commentSection.header?.comments_count?.text
       || null;

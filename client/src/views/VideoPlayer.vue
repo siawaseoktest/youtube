@@ -3,11 +3,13 @@
     <div class="main-content" v-if="video">
       <div class="video-wrapper">
         <iframe
-          :src="`https://www.youtube.com/embed/${videoId}`"
+          v-if="streamUrl"
+          :src="streamUrl"
           frameborder="0"
           allowfullscreen
           class="main-player"
         ></iframe>
+        <div v-else class="loading-msg">動画プレイヤーを読み込み中...</div>
       </div>
 
       <h1 class="video-title" ref="videoTitle">{{ title }}</h1>
@@ -130,7 +132,6 @@ const route = useRoute();
 const videoId = computed(() => route.query.v);
 const playlistId = computed(() => route.query.list);
 </script>
-
 <script>
 export default {
   props: {
@@ -142,11 +143,13 @@ export default {
       error: null,
       hoverId: null,
       showFullDescription: false,
+      streamUrl: "", // iframeで使うURL
     };
   },
   computed: {
     viewCount() {
-      return this.video?.primary_info?.view_count?.short_view_count?.text || this.video?.primary_info?.view_count?.view_count?.text || "情報なし";
+      return this.video?.primary_info?.view_count?.short_view_count?.text ||
+             this.video?.primary_info?.view_count?.view_count?.text || "情報なし";
     },
     title() {
       return this.video?.primary_info?.title?.text || "情報なし";
@@ -222,14 +225,23 @@ export default {
       try {
         this.video = null;
         this.error = null;
+        this.streamUrl = "";
 
+        // 動画情報を取得
         const res = await fetch(`/api/video/${id}`);
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-
+        if (!res.ok) throw new Error(`動画取得エラー: HTTP ${res.status}`);
         this.video = await res.json();
+
+        // 埋め込みURLを取得
+        const streamRes = await fetch(`/api/stream/${id}`);
+        if (!streamRes.ok) throw new Error(`ストリーム取得エラー: HTTP ${streamRes.status}`);
+        const streamData = await streamRes.json();
+
+        if (!streamData.url) throw new Error("ストリームURLが空です");
+        this.streamUrl = streamData.url;
       } catch (err) {
-        console.error("動画取得失敗:", err);
-        this.error = "動画の情報を取得できませんでした。";
+        console.error("取得失敗:", err);
+        this.error = "動画またはストリーム情報を取得できませんでした。";
       }
     },
     getPrimaryThumbnail(id) {
