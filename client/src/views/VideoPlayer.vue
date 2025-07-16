@@ -2,14 +2,7 @@
   <div class="page-container">
     <div class="main-content" v-if="video">
       <div class="video-wrapper">
-        <iframe
-          v-if="streamUrl"
-          :src="streamUrl"
-          frameborder="0"
-          allowfullscreen
-          class="main-player"
-        ></iframe>
-        <div v-else class="loading-msg">動画プレイヤーを読み込み中...</div>
+        <StreamPlayer :videoId="videoId" />
       </div>
 
       <h1 class="video-title" ref="videoTitle">{{ title }}</h1>
@@ -123,15 +116,17 @@
 </template>
 
 <script setup>
-import { computed, watch } from "vue";
+import { computed } from "vue";
 import { useRoute } from "vue-router";
 import PlaylistComponent from "@/components/Playlist.vue";
 import Comment from "@/components/Comment.vue";
+import StreamPlayer from "@/components/StreamPlayer.vue"; 
 
 const route = useRoute();
 const videoId = computed(() => route.query.v);
 const playlistId = computed(() => route.query.list);
 </script>
+
 <script>
 export default {
   props: {
@@ -143,7 +138,6 @@ export default {
       error: null,
       hoverId: null,
       showFullDescription: false,
-      streamUrl: "", // iframeで使うURL
     };
   },
   computed: {
@@ -225,23 +219,13 @@ export default {
       try {
         this.video = null;
         this.error = null;
-        this.streamUrl = "";
 
-        // 動画情報を取得
         const res = await fetch(`/api/video/${id}`);
         if (!res.ok) throw new Error(`動画取得エラー: HTTP ${res.status}`);
         this.video = await res.json();
-
-        // 埋め込みURLを取得
-        const streamRes = await fetch(`/api/stream/${id}`);
-        if (!streamRes.ok) throw new Error(`ストリーム取得エラー: HTTP ${streamRes.status}`);
-        const streamData = await streamRes.json();
-
-        if (!streamData.url) throw new Error("ストリームURLが空です");
-        this.streamUrl = streamData.url;
       } catch (err) {
         console.error("取得失敗:", err);
-        this.error = "動画またはストリーム情報を取得できませんでした。";
+        this.error = "動画情報を取得できませんでした。";
       }
     },
     getPrimaryThumbnail(id) {
@@ -396,22 +380,6 @@ p {
 .main-content {
   flex: 1 1 0;
   min-width: 0;
-}
-
-.video-wrapper {
-  position: relative;
-  width: 100%;
-  padding-top: 56.25%; /* 16:9 */
-  background: #000;
-  margin-bottom: 16px;
-}
-
-.main-player {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
 }
 
 .video-title {

@@ -8,6 +8,7 @@ import commentRoute from "./routes/comment.js";
 import channelRoute from "./routes/channel.js";
 import playlistRouter from "./routes/playlist.js";
 import streamUrlRouter from "./routes/stream-url.js"; 
+import fallbackRoute from "./routes/fallback.js";
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -24,6 +25,7 @@ app.use("/api/comments", commentRoute);
 app.use("/api/channel", channelRoute);
 app.use("/api/playlist", playlistRouter);
 app.use("/api/stream", streamUrlRouter);
+app.use("/api", fallbackRoute);
 
 // GitHubのtrend.jsonを返すAPI
 app.get("/api/trend", async (req, res) => {
