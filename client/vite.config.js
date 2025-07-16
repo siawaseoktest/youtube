@@ -10,7 +10,7 @@ export default defineConfig({
     },
   },
   server: {
-    allowedHosts: ["xx2xy5-5173.csb.app"],
+    allowedHosts: ["5p2933-5173.csb.app"],
     proxy: {
       "/api": {
         target: "http://localhost:5000",

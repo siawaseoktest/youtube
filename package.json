@@ -12,7 +12,7 @@
     "node-fetch": "^3.3.1",
     "youtubei.js": "^14.0.0",
     "ytpl": "github:Victiniiiii/ytpl",
-    "ytdl":"@distube/ytdl-core"
+    "@distube/ytdl-core": "^4.16.12"
   },
   "devDependencies": {
     "concurrently": "^7.6.0"

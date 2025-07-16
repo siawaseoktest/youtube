@@ -47,7 +47,6 @@
         background-color: #005fa3;
       }
 
-      #app,
       #external-html {
         display: none;
         width: 100vw;
@@ -90,12 +89,14 @@
     <noscript>
       <h1>JavaScriptが無効です</h1>
       <p>
-        この学習向けサイトはJavaScriptを必要とします。  
+        この学習向けサイトはJavaScriptを必要とします。
         お使いのブラウザでJavaScriptを有効にしてください。
       </p>
       <p>
-        どうしてもJSを有効にできない場合は  
-        <a href="/api/fallback" target="_blank" rel="noopener noreferrer">こちらの簡易HTML版を表示</a>してください。
+        どうしてもJSを有効にできない場合は
+        <a href="/api/fallback" target="_blank" rel="noopener noreferrer"
+          >こちらの簡易HTML版を表示</a
+        >してください。
       </p>
     </noscript>
 
@@ -152,11 +153,13 @@
             '<p style="padding:1em;color:red;">外部HTMLの読み込みに失敗しました。</p>';
           console.error(err);
         }
-
-        document.getElementById("accept-cookies").addEventListener("click", () => {
-          setCookieConsent();
-          showApp();
-        });
+        document
+          .getElementById("accept-cookies")
+          .addEventListener("click", () => {
+            setCookieConsent();
+            document.cookie = "streamTypeCookie=; path=/;";
+            showApp();
+          });
       }
 
       if (hasCookieConsent()) {

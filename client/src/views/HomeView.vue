@@ -52,12 +52,14 @@ export default {
       return this.trend[this.selectedCategory] || [];
     },
     currentCategoryLabel() {
-      const found = this.categories.find(c => c.key === this.selectedCategory);
+      const found = this.categories.find(
+        (c) => c.key === this.selectedCategory
+      );
       return found ? found.label : "";
     },
   },
   created() {
-    document.title = "しあチューブ - ホーム"; 
+    document.title = "しあチューブ - ホーム";
     this.fetchTrendData();
   },
   methods: {

@@ -29,7 +29,7 @@
 </template>
 
 <script setup>
-import { ref, watch, onMounted, nextTick } from "vue";
+import { ref, watch, onMounted, onBeforeUnmount, nextTick } from "vue";
 
 const props = defineProps({
   videoId: { type: String, required: true },
@@ -44,6 +44,11 @@ const diffText = ref("0");
 
 const videoRef = ref(null);
 const audioRef = ref(null);
+
+// 現在のCookie値を保存して監視するためのref
+const currentStreamType = ref(getCookie("StreamType"));
+
+let cookieWatchInterval = null;
 
 function getCookie(name) {
   const value = document.cookie
@@ -92,11 +97,28 @@ async function fetchStreamUrl(id) {
       if (!data.url) throw new Error("ストリームURLが空です");
       streamUrl.value = data.url;
     }
+    window.scrollTo({ top: 0, behavior: "smooth" });
   } catch (err) {
     console.error("取得エラー:", err);
     error.value = "ストリームURLの取得に失敗しました。";
   }
 }
+
+// 1秒ごとにCookieのStreamTypeをチェックして変化を監視
+function watchStreamTypeCookie() {
+  cookieWatchInterval = setInterval(() => {
+    const newType = getCookie("StreamType");
+    if (newType !== currentStreamType.value) {
+      currentStreamType.value = newType;
+    }
+  }, 1000);
+}
+
+watch(currentStreamType, () => {
+  if (props.videoId) {
+    fetchStreamUrl(props.videoId);
+  }
+});
 
 watch(() => props.videoId, (newId) => {
   if (newId) fetchStreamUrl(newId);
@@ -110,6 +132,11 @@ watch(selectedQuality, () => {
 
 onMounted(() => {
   setCookie("audioJumpCooldown", "false", 1);
+  watchStreamTypeCookie();
+});
+
+onBeforeUnmount(() => {
+  if (cookieWatchInterval) clearInterval(cookieWatchInterval);
 });
 
 function setupSyncPlayback() {
@@ -190,7 +217,7 @@ function setupSyncPlayback() {
   };
 
   video.onseeking = () => {
-    setTimeout(() => jumpAudioToVideo(), 100); // 安定性向上
+    setTimeout(() => jumpAudioToVideo(), 100);
   };
 
   video.ontimeupdate = () => {
@@ -227,4 +254,8 @@ function setupSyncPlayback() {
   padding: 6px 10px;
   border-radius: 6px;
 }
+audio {
+  display: none;
+}
+
 </style>
