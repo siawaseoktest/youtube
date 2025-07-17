@@ -3,19 +3,29 @@
     <div v-if="error">{{ error }}</div>
 
     <!-- StreamType=2 のとき -->
-    <div v-else-if="streamType2 && selectedQuality && sources.muxed360p && sources.separateHigh" class="video-container">
+    <div
+      v-else-if="
+        streamType2 &&
+        selectedQuality &&
+        sources.muxed360p &&
+        sources.separateHigh
+      "
+      class="video-container"
+    >
       <template v-if="selectedQuality === 'muxed360p'">
         <video :src="sources.muxed360p" controls></video>
       </template>
       <template v-else-if="selectedQuality === 'separateHigh'">
         <video ref="videoRef" controls></video>
         <audio ref="audioRef" controls></audio>
-        <p>🎯 差分（video - audio）：<span>{{ diffText }}</span></p>
+        <p>
+          音声の差<span>{{ diffText }}</span>
+        </p>
       </template>
 
       <select v-model="selectedQuality" class="quality-selector">
-        <option value="muxed360p">360p（軽量）</option>
-        <option value="separateHigh">1080p（高画質・同期）</option>
+        <option value="muxed360p">通常</option>
+        <option value="separateHigh">高画質</option>
       </select>
     </div>
 
@@ -24,7 +34,7 @@
       <iframe :src="streamUrl" frameborder="0" allowfullscreen></iframe>
     </div>
 
-    <div v-else>読み込み中...</div>
+    <div style="height: 500px" v-else>読み込み中...</div>
   </div>
 </template>
 
@@ -120,9 +130,13 @@ watch(currentStreamType, () => {
   }
 });
 
-watch(() => props.videoId, (newId) => {
-  if (newId) fetchStreamUrl(newId);
-}, { immediate: true });
+watch(
+  () => props.videoId,
+  (newId) => {
+    if (newId) fetchStreamUrl(newId);
+  },
+  { immediate: true }
+);
 
 watch(selectedQuality, () => {
   if (streamType2.value && selectedQuality.value === "separateHigh") {
@@ -154,7 +168,9 @@ function setupSyncPlayback() {
   const cooldownName = "audioJumpCooldown";
 
   function getCookie(name) {
-    const match = document.cookie.match(new RegExp("(^| )" + name + "=([^;]+)"));
+    const match = document.cookie.match(
+      new RegExp("(^| )" + name + "=([^;]+)")
+    );
     return match ? match[2] : null;
   }
 
@@ -257,5 +273,4 @@ function setupSyncPlayback() {
 audio {
   display: none;
 }
-
 </style>
