@@ -73,26 +73,44 @@
           :key="playlist.playlistId || index"
           class="playlist-wrapper"
         >
-          <h2 class="playlist-title">{{ playlist.title }}<router-link :to="`/playlist?list=${playlist.playlistId}`" class="playlist-video-link-to">▶ 全てを再生 </router-link></h2>
+          <h2 class="playlist-title">{{ playlist.title }}<router-link v-if="playlist.playlistId" :to="`/playlist?list=${playlist.playlistId}`" class="playlist-video-link-to">▶ 全てを再生</router-link></h2>
           <div class="playlist-items-scroll">
             <div
               v-for="(item, idx) in playlist.items"
               :key="item.videoId || idx"
               class="playlist-item"
             >
-              <router-link :to="`/watch?v=${item.videoId}`" class="video-link">
+              <router-link :to="item.icon ? `/channel/${item.videoId}` : `/watch?v=${item.videoId}`" class="video-link">
                 <div class="thumbnail-wrapper small-thumb">
-                  <img
-                    :src="item.thumbnail || getPrimaryThumbnail(item.videoId)"
-                    alt="動画サムネイル"
-                    class="thumbnail"
-                    @error="onImageError($event, item.videoId)"
-                  />
+                    <div>
+                      <!-- icon がある場合 -->
+                      <template v-if="item.icon">
+                        <div class="center"> <!-- 親にclass -->
+                          <a :to="`/channel/${item.videoId}`">
+                            <img
+                              :src="item.icon"
+                              alt="チャンネルアイコン"
+                              class="round"
+                            />
+                          </a>
+                        </div>
+                      </template>
+                        <!-- icon がない場合 -->
+                      <template v-else>
+                        <img
+                          :src="item.thumbnail || getPrimaryThumbnail(item.videoId)"
+                          alt="動画サムネイル"
+                          class="thumbnail"
+                          @error="onImageError($event, item.videoId)"
+                        />
+                      </template>
+                    </div>
                   <span class="duration" v-if="item.duration">{{ item.duration }}</span>
                 </div>
-                <p class="title" :title="item.title">{{ item.title }}</p>
-                <p class="author">{{ item.author }}</p>
-                <p class="meta">{{ item.viewCount }}・{{ item.published }}</p>
+                <p v-if="item.icon" class="center-text">{{ item.title }}</p>
+                <p v-else class="left-text">{{ item.title }}</p>
+                <p class="author" v-if="!item.icon">{{ item.author }}</p>
+                <p class="meta" :class="item.icon ? 'center-text' : 'left-text'">{{ item.viewCount }}<template v-if="item.published">・{{ item.published }}</template></p>
               </router-link>
             </div>
           </div>
@@ -106,59 +124,103 @@
   </section>
   <p v-else class="loading">読み込み中...</p>
 </template>
-<script setup>
+
+<script>
 import { ref, onMounted, watch } from "vue";
 import { useRoute } from "vue-router";
 import VideoList from "@/components/Playlist.vue";
 
-const route = useRoute();
-const channelId = route.params.id;
+export default {
+  components: { VideoList },
+  setup() {
+    const route = useRoute();
+    const channel = ref(null);
+    const tab = ref("home");
 
-const channel = ref(null);
-const tab = ref("home");
+    const defaultAvatar = "/default-avatar.png";
+    const defaultBanner = "/default-banner.png";
 
-const defaultAvatar = "/default-avatar.png";
-const defaultBanner = "/default-banner.png";
-
-function getPrimaryThumbnail(id) {
-  return `https://i.ytimg.com/vi/${id}/sddefault.jpg`;
-}
-
-function onImageError(event, id) {
-  if (!event.target.dataset.error) {
-    event.target.src = `/api/yt-img?id=${id}`;
-    event.target.dataset.error = true;
-  }
-}
-
-// 非同期でチャンネル情報を取得
-onMounted(async () => {
-  try {
-    const res = await fetch(`/api/channel/${channelId}`);
-    if (!res.ok) throw new Error("チャンネル情報取得失敗");
-    const data = await res.json();
-    channel.value = data;
-  } catch (err) {
-    console.error("ChannelView エラー:", err);
-  }
-});
-
-// channel.value の変更を監視し、タイトルを動的更新
-watch(
-  () => channel.value,
-  (newChannel) => {
-    if (newChannel && newChannel.title) {
-      document.title = `${newChannel.title}`;
-    } else {
-      // 取得前やエラー時のタイトル
-      document.title = "読み込み中…";
+    function getPrimaryThumbnail(id) {
+      return `https://i.ytimg.com/vi/${id}/sddefault.jpg`;
     }
+
+    function onImageError(event, id) {
+      if (!event.target.dataset.error) {
+        event.target.src = `/api/yt-img?id=${id}`;
+        event.target.dataset.error = true;
+      }
+    }
+
+    async function fetchChannelInfo(channelId) {
+      try {
+        const res = await fetch(`/api/channel/${channelId}`);
+        if (!res.ok) throw new Error("チャンネル情報取得失敗");
+        const data = await res.json();
+        channel.value = data;
+      } catch (err) {
+        console.error("ChannelView エラー:", err);
+      }
+    }
+
+    onMounted(() => {
+      fetchChannelInfo(route.params.id);
+    });
+
+    watch(
+      () => route.params.id,
+      (newId, oldId) => {
+        if (newId !== oldId) {
+          fetchChannelInfo(newId);
+          window.scrollTo(0, 0);
+        }
+      }
+    );
+
+    watch(
+      () => channel.value,
+      (newChannel) => {
+        if (newChannel && newChannel.title) {
+          document.title = `${newChannel.title}`;
+        } else {
+          document.title = "読み込み中…";
+        }
+      },
+      { immediate: true }
+    );
+
+    return {
+      channel,
+      tab,
+      defaultAvatar,
+      defaultBanner,
+      getPrimaryThumbnail,
+      onImageError,
+    };
   },
-  { immediate: true }
-);
+};
 </script>
 
 <style scoped>
+.center-text {
+  text-align: center;
+}
+
+.left-text {
+  text-align: left;
+}
+
+.center {
+  text-align: center;
+}
+
+.round {
+  width: 103px;
+  height: 103px;
+  border-radius: 50%;
+  object-fit: cover;
+  display: inline-block;
+}
+
 .playlist-video-link-to {
   font-size: 16px;
   font-weight: normal;
@@ -221,7 +283,7 @@ watch(
 
 .playlist-item .thumbnail {
   width: 100%;
-  height: 100%;
+  height: 118px;
   object-fit: cover;
   background-color: #ccc;
   border-radius: 8px;

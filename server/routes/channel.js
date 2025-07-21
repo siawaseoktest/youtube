@@ -5,7 +5,6 @@ const router = express.Router();
 
 let youtube;
 
-// YouTube APIの初期化（アプリ起動時に一度だけ）
 (async () => {
   try {
     youtube = await Innertube.create({
@@ -28,7 +27,6 @@ function normalizePlaylistId(id = "") {
 router.get("/:id", async (req, res) => {
   const channelId = req.params.id;
 
-  // 初期化されていない場合
   if (!youtube) {
     return res.status(503).json({ error: "YouTube APIがまだ初期化されていません" });
   }
@@ -40,22 +38,19 @@ router.get("/:id", async (req, res) => {
     const header = channel.header ?? {};
     const currentTab = channel.current_tab ?? {};
     const contents = currentTab?.content?.contents ?? [];
-
-    // チャンネルトップ動画（動画タブの先頭動画）
     const topVideo = contents?.[0]?.contents?.[0] ?? {};
 
-    // プレイリストセクションを抽出（"他のチャンネル" セクションは除外）
+    // プレイリストセクションを抽出（除外）
     const playlistSections = contents.slice(1).filter(c => {
       if (c.type !== "ItemSection") return false;
       const title = c?.contents?.[0]?.title?.text ?? "";
-      return title !== "他のチャンネル";
+      return title !== "メンバー" && title !== "投稿" && title !== "ショート";
     });
 
     // プレイリスト情報をマップ
     const playlists = playlistSections.map(section => {
       const content = section?.contents?.[0];
       const items = content?.content?.items ?? [];
-
       const rawPlaylistId = content?.title?.endpoint?.payload?.browseId ?? "";
       const playlistId = normalizePlaylistId(rawPlaylistId);
 
@@ -63,13 +58,14 @@ router.get("/:id", async (req, res) => {
         title: content?.title?.text ?? "",
         playlistId,
         items: items.map(item => ({
-          videoId: item.video_id,
-          title: item.title?.text ?? "",
+          videoId: item.video_id || item.author.id,
+          title: item.title?.text || item.author.name || "",
           duration: item.duration?.text ?? "",
           published: item.published?.text ?? "",
           author: item.author?.name ?? metadata.title ?? "",
-          viewCount: item.short_view_count?.text || item.views?.text || "不明",
+          viewCount: item.short_view_count?.text || item.views?.text || item.subscribers.text || "",
           thumbnail: item.thumbnail?.[0]?.url ?? "",
+          icon: item.author?.thumbnails?.[0]?.url ?? "",
         }))
       };
     });
@@ -80,7 +76,6 @@ router.get("/:id", async (req, res) => {
       uploadsPlaylistId = "UU" + channelId.slice(2);
     }
 
-    // 最終レスポンスデータ整形
     const response = {
       channelId,
       title: metadata.title ?? "",
