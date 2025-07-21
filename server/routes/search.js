@@ -28,20 +28,28 @@ function generateThumbnails(videoId) {
 // viewCount: "2,345,678 views" → "2345678"
 function normalizeViewCount(viewText) {
   if (typeof viewText !== "string") return "0";
-  const num = viewText.replace(/[^\d]/g, "");
-  return num || "0";
+
+  // 日本語「万」「億」対応
+  if (viewText.includes("万")) {
+    const num = parseFloat(viewText.replace(/[^\d.]/g, ""));
+    return Math.round(num * 10000).toString();
+  }
+  if (viewText.includes("億")) {
+    const num = parseFloat(viewText.replace(/[^\d.]/g, ""));
+    return Math.round(num * 100000000).toString();
+  }
+
+  return viewText.replace(/[^\d]/g, "") || "0";
 }
 
 // publishedAtを日本語の相対時間文字列に変換
 function formatPublishedAtJapanese(relativeText) {
   if (!relativeText) return "不明";
 
-  // "2 hours ago", "1 day ago" など英語相対時間を日本語に変換
   const regex = /(\d+)\s*(second|minute|hour|day|week|month|year)s?\s*ago/i;
   const match = relativeText.match(regex);
 
   if (!match) {
-    // すでに日本語表現だったらそのまま返す（例："2時間前", "1日前"など）
     if (typeof relativeText === "string" && /前$/.test(relativeText)) {
       return relativeText;
     }
@@ -53,7 +61,7 @@ function formatPublishedAtJapanese(relativeText) {
 
   switch (unit) {
     case "second":
-      return value < 60 ? "たった今" : `${value}秒前`; // 60秒未満なら「たった今」
+      return value < 60 ? "たった今" : `${value}秒前`;
     case "minute":
       return value === 1 ? "1分前" : `${value}分前`;
     case "hour":
@@ -91,7 +99,7 @@ router.get("/", async (req, res) => {
       result = await youtube.getSearchContinuation(pageToken);
     } else {
       result = await youtube.search(keyword, {
-        type: "video",
+        type: "video,channel",
         limit: 20,
         params: {
           gl: "JP",
@@ -101,21 +109,33 @@ router.get("/", async (req, res) => {
     }
 
     const videos = (result.results || [])
-      .filter(item => item.type === "Video")
+      .filter(item => ["Video", "Channel"].includes(item.type))
       .map(item => {
-        const videoId = item.video_id || item.id;
-        return {
-          id: videoId,
-          title: item.title?.text || item.title?.runs?.[0]?.text || "無題",
-          duration: item.duration?.text || "不明", // 例: "2:30" をそのまま返す
-          publishedAt: formatPublishedAtJapanese(item.published?.text || ""),
-          channel: item.author?.name || "不明なチャンネル",
-          channelId: item.author?.id || "",
-          channelIcon: item.author?.thumbnails?.[0]?.url || "",
-          thumbnails: generateThumbnails(videoId),
-          viewCount: normalizeViewCount(item.view_count?.text || ""),
-          url: `https://www.youtube.com/watch?v=${videoId}`,
-        };
+        if (item.type === "Video") {
+          const videoId = item.video_id || item.id;
+          return {
+            type: "video",
+            id: videoId,
+            title: item.title?.text || item.title?.runs?.[0]?.text || "無題",
+            duration: item.duration?.text || "不明",
+            publishedAt: formatPublishedAtJapanese(item.published?.text || ""),
+            channel: item.author?.name || "不明なチャンネル",
+            channelId: item.author?.id || "",
+            channelIcon: item.author?.thumbnails?.[0]?.url || "",
+            thumbnails: generateThumbnails(videoId),
+            viewCount: normalizeViewCount(item.view_count?.text || ""),
+            url: `https://www.youtube.com/watch?v=${videoId}`,
+          };
+        } else if (item.type = "Channel") {
+          return {
+            type: "channel",
+            id: item.channel_id || item.id,
+            name: item.author?.name || "不明なチャンネル",
+            icon: item.author?.thumbnails?.[0]?.url || "",
+            subscriberCount: item.video_count?.text || "不明",
+            url: `https://www.youtube.com/channel/${item.channel_id || item.id}`,
+          };
+        }
       });
 
     res.json({

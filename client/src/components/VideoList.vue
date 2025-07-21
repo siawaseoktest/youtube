@@ -3,54 +3,83 @@
     <h2>{{ title }}</h2>
     <ul class="video-list">
       <li v-for="video in videos" :key="video.id" class="video-item">
-        <router-link :to="`/watch?v=${video.id}`" class="thumbnail-link">
-          <div
-            class="thumbnail-wrapper"
-            :data-duration="formatDuration(video.duration)"
-          >
-            <img
-              :src="getPrimaryThumbnail(video.id)"
-              :alt="video.title"
-              @error="onImageError($event, video.id)"
-            />
-          </div>
-        </router-link>
 
-        <div class="info">
-          <h3>
-            <router-link
-              :to="`/watch?v=${video.id}`"
-              class="title-link"
+        <!-- 動画 -->
+        <template v-if="video.type === 'video'">
+          <router-link :to="`/watch?v=${video.id}`" class="thumbnail-link">
+            <div
+              class="thumbnail-wrapper"
+              :data-duration="formatDuration(video.duration)"
             >
-              {{ video.title }}
-            </router-link>
-          </h3>
-          <router-link
-            :to="`/channel/${video.channelId}`"
-            class="channel-link"
-          >
-          <div class="channel-info">
-            <img
-              :src="video.channelIcon"
-              :alt="video.channel + 'のアイコン'"
-              class="channel-icon"
-              @error="onChannelIconError"
-            />
-              {{ video.channel }}
-          </div></router-link>
+              <img
+                :src="getPrimaryThumbnail(video.id)"
+                :alt="video.title"
+                @error="onImageError($event, video.id)"
+              />
+            </div>
+          </router-link>
 
-          <p>
-            {{ formatViewCount(video.viewCount) }}回視聴・{{
-              formatPublishedAt(video.publishedAt)
-            }}
-          </p>
-        </div>
+          <div class="info">
+            <h3>
+              <router-link
+                :to="`/watch?v=${video.id}`"
+                class="title-link"
+              >
+                {{ video.title }}
+              </router-link>
+            </h3>
+            <router-link
+              :to="`/channel/${video.channelId}`"
+              class="channel-link"
+            >
+              <div class="channel-info">
+                <img
+                  :src="video.channelIcon"
+                  :alt="video.channel + 'のアイコン'"
+                  class="channel-icon"
+                  @error="onChannelIconError"
+                />
+                {{ video.channel }}
+              </div>
+            </router-link>
+
+            <p>
+              {{ formatViewCount(video.viewCount) }}回視聴・
+              {{ formatPublishedAt(video.publishedAt) }}
+            </p>
+          </div>
+        </template>
+
+        <!-- チャンネル -->
+        <template v-else-if="video.type === 'channel'">
+          <router-link :to="`/channel/${video.id}`" class="thumbnail-link">
+            <div class="channel-thumbnail-wrapper">
+              <img
+                :src="video.channelIcon || video.icon"
+                :alt="video.channel || video.name + 'のアイコン'"
+                class="channel-icon-large"
+                @error="onChannelIconError"
+              />
+            </div>
+          </router-link>
+
+          <div class="info">
+            <h2 class="channel-name">
+              <router-link :to="`/channel/${video.id}`" class="title-link">
+                {{ video.channel || video.name }}
+              </router-link>
+            </h2>
+
+            <p class="subscriber-count">
+              登録者数: {{ video.subscriberCount }}
+            </p>
+          </div>
+        </template>
+
       </li>
     </ul>
   </section>
 </template>
-
-
 
 <script>
 export default {
@@ -65,50 +94,39 @@ export default {
     },
   },
   methods: {
-    // duration を mm:ss または hh:mm:ss 表記に変換（ISO8601か文字列形式対応）
     formatDuration(input) {
       if (!input) return "";
 
-      // ISO8601形式をパース
       const isoMatch = input.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
       const pad = (n) => n.toString().padStart(2, "0");
       if (isoMatch) {
-        // キャプチャ部分のみ parseInt
-        const [h, m, s] = isoMatch.slice(1).map(v => parseInt(v || "0"));
-        const totalSeconds = (h * 3600) + (m * 60) + s;
+        const [h, m, s] = isoMatch.slice(1).map((v) => parseInt(v || "0"));
+        const totalSeconds = h * 3600 + m * 60 + s;
         const hh = Math.floor(totalSeconds / 3600);
         const mm = Math.floor((totalSeconds % 3600) / 60);
         const ss = totalSeconds % 60;
         return hh ? `${hh}:${pad(mm)}:${pad(ss)}` : `${mm}:${pad(ss)}`;
       }
 
-      // mm:ss または hh:mm:ss 形式の文字列を簡易チェックして整形
       const timeParts = input.split(":");
-
       if (
         timeParts.length === 2 &&
         timeParts.every((part) => /^\d+$/.test(part))
       ) {
-        // mm:ss
         const [mm, ss] = timeParts;
         return `${parseInt(mm)}:${pad(parseInt(ss))}`;
       } else if (
         timeParts.length === 3 &&
         timeParts.every((part) => /^\d+$/.test(part))
       ) {
-        // hh:mm:ss
         const [hh, mm, ss] = timeParts;
         return `${parseInt(hh)}:${pad(parseInt(mm))}:${pad(parseInt(ss))}`;
       }
-
-      // 対応しない形式は空文字
       return "";
     },
 
     formatPublishedAt(input) {
       if (!input) return "不明";
-
-      // ISO8601形式か判定
       const isoDate = new Date(input);
       if (!isNaN(isoDate.getTime())) {
         const now = new Date();
@@ -123,25 +141,28 @@ export default {
         if (days === 1) return "1日前";
         return `${days}日前`;
       }
-
-      // 日本語の相対表現ならそのまま返す
-      if (/^\d+日前$/.test(input) || /^\d+時間前$/.test(input) || /^\d+分前$/.test(input) || input === "たった今") {
+      if (
+        /^\d+日前$/.test(input) ||
+        /^\d+時間前$/.test(input) ||
+        /^\d+分前$/.test(input) ||
+        input === "たった今"
+      ) {
         return input;
       }
-
-      // それ以外は入力をそのまま返す
       return input;
     },
 
     getPrimaryThumbnail(id) {
       return `https://i.ytimg.com/vi/${id}/sddefault.jpg`;
     },
+
     onImageError(event, id) {
       if (!event.target.dataset.error) {
         event.target.src = `/api/yt-img?id=${id}`;
         event.target.dataset.error = true;
       }
     },
+
     onChannelIconError(event) {
       event.target.style.display = "none";
     },
@@ -168,12 +189,17 @@ a,
   text-decoration: none;
 }
 
-html, body {
+html,
+body {
   margin: 0;
   padding: 0;
   font-family: Meiryo, "メイリオ", sans-serif;
 }
-  
+
+.title-link{
+  color: #000000;
+}
+
 .video-list {
   list-style: none;
   padding: 0;
@@ -199,7 +225,7 @@ html, body {
 .thumbnail-wrapper {
   position: relative;
   width: 100%;
-  padding-top: 56.25%;
+  padding-top: 56.25%; /* 16:9 */
   background-color: #f0f0f0;
 }
 
@@ -226,12 +252,29 @@ html, body {
   pointer-events: none;
 }
 
+.channel-thumbnail-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 1.2rem 0 0.5rem 0;
+  background-color: transparent;
+  padding-top: 40px;
+}
+
+.channel-icon-large {
+  width: 110px;
+  height: 110px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid #ddd;
+}
+
 .info {
   padding: 1rem;
 }
 
 .info h3 {
-  font-size: 1.1rem;
+  font-size: 1.2rem;
   margin: 0 0 0.5rem;
   line-height: 1.4;
   color: #222;
@@ -263,6 +306,7 @@ html, body {
   line-height: 1.4;
 }
 
+/* 動画用チャンネル情報 */
 .channel-info {
   display: flex;
   align-items: center;
@@ -277,4 +321,11 @@ html, body {
   border-radius: 50%;
   object-fit: cover;
 }
+
+.subscriber-count {
+  font-weight: bold;
+  color: #333;
+  margin-top: 0.4rem;
+}
+
 </style>
