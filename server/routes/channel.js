@@ -44,7 +44,7 @@ router.get("/:id", async (req, res) => {
     const playlistSections = contents.slice(1).filter(c => {
       if (c.type !== "ItemSection") return false;
       const title = c?.contents?.[0]?.title?.text ?? "";
-      return title !== "メンバー" && title !== "投稿" && title !== "ショート";
+      return title !== "メンバー" && title !== "投稿" && title !== "ショート" && title !== "複数の再生リスト";
     });
 
     // プレイリスト情報をマップ

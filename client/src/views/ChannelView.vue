@@ -73,7 +73,7 @@
           :key="playlist.playlistId || index"
           class="playlist-wrapper"
         >
-          <h2 class="playlist-title">{{ playlist.title }}<router-link v-if="playlist.playlistId" :to="`/playlist?list=${playlist.playlistId}`" class="playlist-video-link-to">▶ 全てを再生</router-link></h2>
+          <h2 class="playlist-title">{{ playlist.title }}<router-link v-if="playlist.playlistId" :to="`/playlist?list=${playlist.playlistId}`" class="playlist-video-link-to">▶ 全てを再生<span style="font-size: small; color: #989898;">(プレイリスト再生モード)</span></router-link></h2>
           <div class="playlist-items-scroll">
             <div
               v-for="(item, idx) in playlist.items"
@@ -108,7 +108,7 @@
                   <span class="duration" v-if="item.duration">{{ item.duration }}</span>
                 </div>
                 <p v-if="item.icon" class="center-text">{{ item.title }}</p>
-                <p v-else class="left-text">{{ item.title }}</p>
+                <p :class="title" v-if="!item.icon" class="left-text" style="font-weight: 600;">{{ item.title }}</p>
                 <p class="author" v-if="!item.icon">{{ item.author }}</p>
                 <p class="meta" :class="item.icon ? 'center-text' : 'left-text'">{{ item.viewCount }}<template v-if="item.published">・{{ item.published }}</template></p>
               </router-link>
@@ -201,6 +201,20 @@ export default {
 </script>
 
 <style scoped>
+.left-text {
+  font-size: 1.1rem;
+  margin-block-end: 0.1em;
+  margin-top: 1;
+  line-height: 1.3;
+  max-height: calc(1.3em * 2); 
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  text-overflow: ellipsis;
+  white-space: normal;
+}
+
 .center-text {
   text-align: center;
 }
@@ -313,15 +327,15 @@ export default {
 }
 
 .playlist-item .author {
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   color: #666;
   margin-top: 2px;
 }
 
 .playlist-item .meta {
-  font-size: 0.85rem;
+  font-size: 0.79rem;
   color: #555;
-  margin-top: 2px;
+  margin-top: 0px;
 }
 
 .channel-view {
