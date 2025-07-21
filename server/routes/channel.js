@@ -58,12 +58,12 @@ router.get("/:id", async (req, res) => {
         title: content?.title?.text ?? "",
         playlistId,
         items: items.map(item => ({
-          videoId: item.video_id || item.author.id,
-          title: item.title?.text || item.author.name || "",
+          videoId: item.video_id ?? item.author?.id ?? "",
+          title: item.title?.text ?? item.author?.name ?? "",
           duration: item.duration?.text ?? "",
           published: item.published?.text ?? "",
           author: item.author?.name ?? metadata.title ?? "",
-          viewCount: item.short_view_count?.text || item.views?.text || item.subscribers.text || "",
+          viewCount: item.short_view_count?.text ?? item.views?.text ?? item.subscribers?.text ?? "",
           thumbnail: item.thumbnail?.[0]?.url ?? "",
           icon: item.author?.thumbnails?.[0]?.url ?? "",
         }))

@@ -3,9 +3,8 @@
     <h2>{{ title }}</h2>
     <ul class="video-list">
       <li v-for="video in videos" :key="video.id" class="video-item">
-
         <!-- 動画 -->
-        <template v-if="video.type === 'video'">
+        <template v-if="video.type !== 'channel'">
           <router-link :to="`/watch?v=${video.id}`" class="thumbnail-link">
             <div
               class="thumbnail-wrapper"
