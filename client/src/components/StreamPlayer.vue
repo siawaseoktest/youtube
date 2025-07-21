@@ -31,7 +31,7 @@
 
     <!-- StreamType=1（iframeのみ） -->
     <div v-else-if="streamUrl" class="video-container">
-      <iframe :src="streamUrl" frameborder="0" allowfullscreen></iframe>
+      <iframe :src="streamUrl" frameborder="0" allowfullscreen allow="autoplay; encrypted-media; picture-in-picture" referrerpolicy="strict-origin-when-cross-origin"></iframe>    
     </div>
 
     <div style="height: 500px" v-else>読み込み中...</div>
