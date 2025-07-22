@@ -201,7 +201,7 @@ body {
 
 .video-list {
   list-style: none;
-  padding: 0;
+  padding: 5px;
   margin: 0;
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
