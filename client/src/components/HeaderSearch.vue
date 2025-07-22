@@ -188,7 +188,7 @@ const clearQuery = () => {
   background-color: white;
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
   z-index: 1000;
-  height: 54px; /* ヘッダー高さ */
+  height: 54px; 
   position: fixed; 
   top: 0;
   left: 0;

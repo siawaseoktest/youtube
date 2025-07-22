@@ -12,6 +12,7 @@ let youtube;
   });
 })();
 
+// 環境によっては(殆ど)エラーで動かないので一切形成しません
 router.get("/:id", async (req, res) => {
   const videoId = req.params.id;
 
@@ -24,7 +25,7 @@ router.get("/:id", async (req, res) => {
       return res.status(503).json({ error: "YouTubeクライアントが未初期化です。" });
     }
 
-    // 動画情報全体を取得（加工せず）
+    // 動画情報全体を取得
     const videoInfo = await youtube.getInfo(videoId);
 
     // 取得した動画情報をJSONとして直接返す

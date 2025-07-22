@@ -4,11 +4,11 @@ import HomeView from "@/views/HomeView.vue";
 import VideoPlayer from "@/views/VideoPlayer.vue";
 import SearchView from "@/views/SearchView.vue";
 import ChannelView from "@/views/ChannelView.vue";
-import Playlist from "@/components/Playlist.vue"; // ✅ 追加
+import Playlist from "@/components/Playlist.vue"; 
 
 const routes = [
   {
-    path: "/", // ホーム
+    path: "/", 
     name: "Home",
     component: HomeView,
   },
@@ -31,7 +31,7 @@ const routes = [
     props: (route) => ({ channelId: route.params.id }),
   },
   {
-    path: "/playlist", // ✅ ここ！ クエリで list=xxx を受け取る
+    path: "/playlist", 
     name: "Playlist",
     component: Playlist,
     props: (route) => ({

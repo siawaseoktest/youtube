@@ -216,7 +216,6 @@ export default {
   overflow: visible;
 }
 
-/* もっと見るボタン */
 .read-more-btn {
   background: none;
   border: none;

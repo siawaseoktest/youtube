@@ -23,7 +23,7 @@ export default {
 </script>
 <style>
 #app {
-  padding-top: 52px; /* ヘッダーの高さと合わせる */
+  padding-top: 52px; 
   box-sizing: border-box;
 }
 </style>

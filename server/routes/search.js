@@ -13,7 +13,6 @@ const youtubeReady = Youtube.create()
     console.error("❌ Failed to initialize YouTube API:", err);
   });
 
-// サムネイル複数解像度
 function generateThumbnails(videoId) {
   if (!videoId) return {};
   return {
@@ -25,11 +24,9 @@ function generateThumbnails(videoId) {
   };
 }
 
-// viewCount: "2,345,678 views" → "2345678"
 function normalizeViewCount(viewText) {
   if (typeof viewText !== "string") return "0";
 
-  // 日本語「万」「億」対応
   if (viewText.includes("万")) {
     const num = parseFloat(viewText.replace(/[^\d.]/g, ""));
     return Math.round(num * 10000).toString();
@@ -42,7 +39,6 @@ function normalizeViewCount(viewText) {
   return viewText.replace(/[^\d]/g, "") || "0";
 }
 
-// publishedAtを日本語の相対時間文字列に変換
 function formatPublishedAtJapanese(relativeText) {
   if (!relativeText) return "不明";
 

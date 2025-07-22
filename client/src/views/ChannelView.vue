@@ -85,7 +85,7 @@
                     <div>
                       <!-- icon がある場合 -->
                       <template v-if="item.icon">
-                        <div class="center"> <!-- 親にclass -->
+                        <div class="center">
                           <a :to="`/channel/${item.videoId}`">
                             <img
                               :src="item.icon"
@@ -122,7 +122,24 @@
         <VideoList :playlist-id="channel.uploadsPlaylistId" displayType="channel" />
     </div>
   </section>
-  <p v-else class="loading">読み込み中...</p>
+  <p v-else class="loading">読み込み中...<br></p>
+
+  <div v-if="tab === 'home'" class="page-end">
+    <div>
+      <br>
+      <p>すべての動画を見るには「動画」セクションに移動してください</p>
+    </div>
+    <div class="tabs">
+      <div
+        :class="{ active: tab === 'videos' }"
+        class="page-end-tab"
+        role="button"
+        tabindex="0"
+        @click="tab = 'videos'"
+        @keydown.enter.space.prevent="tab = 'videos'"
+      >動画セクションに移動<img src="/Image/linkicon.png" width="21" height="21"></div>
+    </div>
+  </div>
 </template>
 
 <script>
@@ -201,6 +218,16 @@ export default {
 </script>
 
 <style scoped>
+.page-end-tab{
+  margin: 0 auto;
+  text-decoration: underline;
+  font-size: 21px;
+}
+
+.page-end {
+  text-align: center;
+}
+
 .left-text {
   font-size: 1.1rem;
   margin-block-end: 0.1em;
@@ -221,6 +248,7 @@ export default {
 
 .left-text {
   text-align: left;
+  font-size: 18px;
 }
 
 .center {
@@ -340,7 +368,7 @@ export default {
 
 .channel-view {
   padding: 16px;
-  max-width: 90%;
+  max-width: 95%;
   margin: 0 auto;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
     "Helvetica Neue", Arial, sans-serif;

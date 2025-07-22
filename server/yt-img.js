@@ -26,7 +26,7 @@ async function tryFetchImage(res, id, index = 0) {
         "Content-Type",
         response.headers.get("content-type") || "image/jpeg"
       );
-      res.setHeader("Cache-Control", "public, max-age=86400"); // 1日キャッシュ
+      res.setHeader("Cache-Control", "public, max-age=86400"); 
 
       // response.bodyはNode.jsのReadableStreamなのでpipeできるはず
       if (response.body && typeof response.body.pipe === "function") {

@@ -69,7 +69,6 @@
 import { ref, onMounted, nextTick, computed } from "vue";
 import { useRoute } from "vue-router";
 
-// propsの定義
 const props = defineProps({
   playlistId: String,
   playVideoId: String,
@@ -88,7 +87,6 @@ const error = ref(false);
 // スクロール対象の要素への参照
 const scrollContainer = ref(null);
 
-// props優先のクエリ取得
 const playlistId = computed(() => props.playlistId || route.query.list || "");
 const playVideoId = computed(() => props.playVideoId || route.query.play || "");
 const displayType = computed(() => props.displayType || route.query.type || "default");
@@ -145,12 +143,10 @@ onMounted(async () => {
   }
 });
 
-// サムネイルURL生成
 function getPrimaryThumbnail(id) {
   return `https://i.ytimg.com/vi/${id}/sddefault.jpg`;
 }
 
-// エラー時の代替画像処理
 function onImageError(event, id) {
   if (!event.target.dataset.error) {
     event.target.src = `/api/yt-img?id=${id}`;
@@ -230,7 +226,6 @@ function onImageError(event, id) {
   overflow: hidden;
   border-radius: 0.5rem;
   margin-block: 10px; 
-  margin-left: 8px
 }
 
 .thumbnail-wrapper.small-thumb {
@@ -256,22 +251,20 @@ function onImageError(event, id) {
   border-radius: 4px;
 }
 
-/* ここがJS除去した2行省略用CSS */
 .title {
   font-size: 0.9rem;
   font-weight: 600;
   text-align: left;
   margin-top: 1;
   line-height: 1.3;
-  max-height: calc(1.3em * 2); /* 2行相当 */
+  max-height: calc(1.3em * 2); 
   overflow: hidden;
-
-  /* 2行で省略 */
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   text-overflow: ellipsis;
   white-space: normal;
+  margin-left: 2px;
 }
 
 .author {
@@ -281,6 +274,7 @@ function onImageError(event, id) {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  margin-left: 2px;
 }
 
 .watch-layout {
@@ -303,7 +297,6 @@ function onImageError(event, id) {
   }
 }
 
-/* エラー表示スタイル */
 .error-message {
   color: red;
   padding: 1rem;

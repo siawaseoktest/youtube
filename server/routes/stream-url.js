@@ -10,7 +10,6 @@ const CACHE_DURATION_MS = 60 * 1000; // 1分
 // キャッシュ格納マップ
 const configCacheMap = new Map(); // url => { data, timestamp }
 
-// ✅ 設定JSONの取得（1分以内はキャッシュ、それ以降は再取得）
 function fetchConfigJson(url) {
   const now = Date.now();
   const cacheEntry = configCacheMap.get(url);
@@ -60,7 +59,7 @@ router.get("/:id", async (req, res) => {
   }
 });
 
-// 📦 type2：muxed360p, videoOnly, audioOnly のURLを返す
+// type2：muxed360p, videoOnly, audioOnly のURLを返す
 router.get("/:id/type2", async (req, res) => {
   const { id } = req.params;
   if (!/^[\w-]{11}$/.test(id)) {
@@ -96,7 +95,7 @@ router.get("/:id/type2", async (req, res) => {
 });
 
 
-// 🧹 キャッシュ削除API
+// キャッシュ削除
 router.post("/admin/invalidate-cache", (req, res) => {
   const { url } = req.body;
   if (!url || typeof url !== "string") {
@@ -111,7 +110,7 @@ router.post("/admin/invalidate-cache", (req, res) => {
   }
 });
 
-// 🔍 キャッシュ状況確認API
+// キャッシュ状況確認
 router.get("/admin/cache-status", (req, res) => {
   const now = Date.now();
   const status = [];

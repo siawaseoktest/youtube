@@ -1,4 +1,3 @@
-// server/routes/fallback.js
 import express from "express";
 import https from "https";
 
@@ -13,7 +12,7 @@ router.get("/fallback", (req, res) => {
       let data = "";
       githubRes.on("data", (chunk) => (data += chunk));
       githubRes.on("end", () => {
-        res.send(data); // クライアントにGitHubのHTMLをそのまま返す
+        res.send(data); 
       });
     })
     .on("error", (err) => {
