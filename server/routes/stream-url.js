@@ -4,7 +4,8 @@ import ytdl from "@distube/ytdl-core";
 
 const router = express.Router();
 
-const CONFIG_URL = "https://raw.githubusercontent.com/siawaseok3/wakame/master/video_config.json";
+const CONFIG_URL =
+  "https://raw.githubusercontent.com/siawaseok3/wakame/master/video_config.json";
 const CACHE_DURATION_MS = 60 * 1000; // 1分
 
 // キャッシュ格納マップ
@@ -45,7 +46,11 @@ function fetchConfigJson(url) {
 router.get("/:id", async (req, res) => {
   const { id } = req.params;
   if (!/^[\w-]{11}$/.test(id)) {
-    return res.status(400).json({ error: "不正なID形式です（11文字のYouTube Video IDが必要です）" });
+    return res
+      .status(400)
+      .json({
+        error: "不正なID形式です（11文字のYouTube Video IDが必要です）",
+      });
   }
 
   try {
@@ -63,7 +68,11 @@ router.get("/:id", async (req, res) => {
 router.get("/:id/type2", async (req, res) => {
   const { id } = req.params;
   if (!/^[\w-]{11}$/.test(id)) {
-    return res.status(400).json({ error: "不正なID形式です（11文字のYouTube Video IDが必要です）" });
+    return res
+      .status(400)
+      .json({
+        error: "不正なID形式です（11文字のYouTube Video IDが必要です）",
+      });
   }
 
   try {
@@ -71,16 +80,13 @@ router.get("/:id/type2", async (req, res) => {
     const formats = info.formats;
 
     const muxed360p = formats
-      .filter(f => f.hasVideo && f.hasAudio && f.height === 360)
+      .filter((f) => f.hasVideo && f.hasAudio && f.height === 360)
       .sort((a, b) => (b.bitrate || 0) - (a.bitrate || 0))[0];
 
-    const videoOnly = formats
-      .filter(f => f.hasVideo && !f.hasAudio)
-      .sort((a, b) => (b.height || 0) - (a.height || 0))
-      .find(f => f.height >= 1080) || formats.find(f => f.height >= 720);
+    const videoOnly = formats.find((f) => f.itag === 136);
 
     const audioOnly = formats
-      .filter(f => f.hasAudio && !f.hasVideo)
+      .filter((f) => f.hasAudio && !f.hasVideo)
       .sort((a, b) => (b.audioBitrate || 0) - (a.audioBitrate || 0))[0];
 
     res.json({
@@ -93,7 +99,6 @@ router.get("/:id/type2", async (req, res) => {
     res.status(500).json({ error: "ストリームURLの取得に失敗しました。" });
   }
 });
-
 
 // キャッシュ削除
 router.post("/admin/invalidate-cache", (req, res) => {
@@ -119,7 +124,10 @@ router.get("/admin/cache-status", (req, res) => {
     status.push({
       url,
       ageSeconds: Math.floor((now - timestamp) / 1000),
-      expiresInSeconds: Math.max(0, Math.ceil((CACHE_DURATION_MS - (now - timestamp)) / 1000)),
+      expiresInSeconds: Math.max(
+        0,
+        Math.ceil((CACHE_DURATION_MS - (now - timestamp)) / 1000)
+      ),
     });
   }
 

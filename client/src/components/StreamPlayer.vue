@@ -2,7 +2,7 @@
   <div class="video-wrapper">
     <div v-if="error">{{ error }}</div>
 
-    <!-- StreamType=2 のとき -->
+    <!-- StreamType=2 -->
     <div
       v-else-if="
         streamType2 &&
@@ -13,25 +13,46 @@
       class="video-container"
     >
       <template v-if="selectedQuality === 'muxed360p'">
-        <video :src="sources.muxed360p" controls></video>
+        <video ref="videoRef" :src="sources.muxed360p" controls></video>
       </template>
       <template v-else-if="selectedQuality === 'separateHigh'">
         <video ref="videoRef" controls></video>
         <audio ref="audioRef" controls></audio>
-        <p>
-          音声の差<span>{{ diffText }}</span>
-        </p>
       </template>
 
-      <select v-model="selectedQuality" class="quality-selector">
-        <option value="muxed360p">通常</option>
-        <option value="separateHigh">高画質</option>
-      </select>
+      <!-- 設定ボックス -->
+      <div class="settings-box" v-show="settingsVisible">
+        <label>
+          画質:
+          <select v-model="selectedQuality" class="selector">
+            <option value="muxed360p">通常</option>
+            <option value="separateHigh">高画質</option>
+          </select>
+        </label>
+
+        <label>
+          再生速度:
+          <select v-model.number="selectedPlaybackRate" class="selector">
+            <option v-for="rate in playbackRates" :key="rate" :value="rate">
+              {{ rate }}x
+            </option>
+          </select>
+        </label>
+
+        <button @click="reloadStream" class="reload-button">再読込み</button>
+      </div>
     </div>
 
-    <!-- StreamType=1（iframeのみ） -->
+    <!-- iframeモード -->
     <div v-else-if="streamUrl" class="video-container">
-      <iframe :src="streamUrl" frameborder="0" allowfullscreen allow="autoplay; encrypted-media; picture-in-picture" referrerpolicy="strict-origin-when-cross-origin"></iframe>    
+      <iframe
+        :src="streamUrl"
+        frameborder="0"
+        allowfullscreen
+        allow="autoplay; encrypted-media; picture-in-picture"
+        referrerpolicy="strict-origin-when-cross-origin"
+        title="動画ストリーム"
+      ></iframe>
     </div>
 
     <div style="height: 500px" v-else>読み込み中...</div>
@@ -41,24 +62,31 @@
 <script setup>
 import { ref, watch, onMounted, onBeforeUnmount, nextTick } from "vue";
 
+// props
 const props = defineProps({
   videoId: { type: String, required: true },
 });
 
+// 状態
 const streamUrl = ref("");
 const error = ref("");
 const sources = ref({});
 const selectedQuality = ref("muxed360p");
+const selectedPlaybackRate = ref(1.0);
+const playbackRates = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2, 3, 4];
 const streamType2 = ref(false);
 const diffText = ref("0");
 
 const videoRef = ref(null);
 const audioRef = ref(null);
 
-// 現在のCookie値を保存して監視するためのref
+// クッキー監視用
 const currentStreamType = ref(getCookie("StreamType"));
-
 let cookieWatchInterval = null;
+
+// 設定ボックスの自動非表示
+const settingsVisible = ref(true);
+let visibilityTimer = null;
 
 function getCookie(name) {
   const value = document.cookie
@@ -72,12 +100,20 @@ function setCookie(name, value, seconds) {
   document.cookie = `${name}=${value}; expires=${expires}; path=/`;
 }
 
+// 動画再取得処理
+function reloadStream() {
+  if (props.videoId) {
+    fetchStreamUrl(props.videoId);
+  }
+}
+
 async function fetchStreamUrl(id) {
   streamUrl.value = "";
   error.value = "";
   streamType2.value = false;
   sources.value = {};
   selectedQuality.value = "muxed360p";
+  selectedPlaybackRate.value = 1.0;
   diffText.value = "0";
 
   try {
@@ -107,6 +143,7 @@ async function fetchStreamUrl(id) {
       if (!data.url) throw new Error("ストリームURLが空です");
       streamUrl.value = data.url;
     }
+
     window.scrollTo({ top: 0, behavior: "smooth" });
   } catch (err) {
     console.error("取得エラー:", err);
@@ -114,7 +151,6 @@ async function fetchStreamUrl(id) {
   }
 }
 
-// 1秒ごとにCookieのStreamTypeをチェックして変化を監視
 function watchStreamTypeCookie() {
   cookieWatchInterval = setInterval(() => {
     const newType = getCookie("StreamType");
@@ -124,12 +160,38 @@ function watchStreamTypeCookie() {
   }, 1000);
 }
 
-watch(currentStreamType, () => {
-  if (props.videoId) {
-    fetchStreamUrl(props.videoId);
-  }
+function resetSettingsVisibility() {
+  settingsVisible.value = true;
+  if (visibilityTimer) clearTimeout(visibilityTimer);
+  visibilityTimer = setTimeout(() => {
+    settingsVisible.value = false;
+  }, 3000);
+}
+
+function setupAutoHide() {
+  ["mousemove", "click", "touchstart"].forEach((event) => {
+    window.addEventListener(event, resetSettingsVisibility);
+  });
+}
+
+function removeAutoHide() {
+  ["mousemove", "click", "touchstart"].forEach((event) => {
+    window.removeEventListener(event, resetSettingsVisibility);
+  });
+}
+
+// 再生速度
+watch(selectedPlaybackRate, () => {
+  if (videoRef.value) videoRef.value.playbackRate = selectedPlaybackRate.value;
+  // audio.playbackRate は correctPlaybackRate で常時補正されるため直接は変更しない
 });
 
+// StreamType変化時に再取得
+watch(currentStreamType, () => {
+  if (props.videoId) fetchStreamUrl(props.videoId);
+});
+
+// videoId変化時に再取得
 watch(
   () => props.videoId,
   (newId) => {
@@ -138,21 +200,14 @@ watch(
   { immediate: true }
 );
 
+// 画質変更時にセットアップ（高画質のみ）
 watch(selectedQuality, () => {
   if (streamType2.value && selectedQuality.value === "separateHigh") {
     nextTick(() => setupSyncPlayback());
   }
 });
 
-onMounted(() => {
-  setCookie("audioJumpCooldown", "false", 1);
-  watchStreamTypeCookie();
-});
-
-onBeforeUnmount(() => {
-  if (cookieWatchInterval) clearInterval(cookieWatchInterval);
-});
-
+// 高画質モードの映像・音声同期＆補正
 function setupSyncPlayback() {
   const video = videoRef.value;
   const audio = audioRef.value;
@@ -165,22 +220,13 @@ function setupSyncPlayback() {
   let isStartupJumpDone = false;
   let isBuffering = false;
 
-  const cooldownName = "audioJumpCooldown";
-
-  function getCookie(name) {
-    const match = document.cookie.match(
-      new RegExp("(^| )" + name + "=([^;]+)")
-    );
-    return match ? match[2] : null;
-  }
-
   function isJumpCooldown() {
-    return getCookie(cooldownName) === "true";
+    return getCookie("audioJumpCooldown") === "true";
   }
 
   function startJumpCooldown() {
-    setCookie(cooldownName, "true", 1);
-    setTimeout(() => setCookie(cooldownName, "false", 1), 1000);
+    setCookie("audioJumpCooldown", "true", 1);
+    setTimeout(() => setCookie("audioJumpCooldown", "false", 1), 1000);
   }
 
   function jumpAudioToVideo() {
@@ -192,18 +238,22 @@ function setupSyncPlayback() {
 
   function correctPlaybackRate(diff) {
     const abs = Math.abs(diff);
+    let rateAdjust = 1.0;
+
     if (abs < 0.01) {
-      audio.playbackRate = 1.0;
+      rateAdjust = 1.0;
     } else if (abs < 0.1) {
-      audio.playbackRate = diff > 0 ? 1.02 : 0.98;
+      rateAdjust = diff > 0 ? 1.02 : 0.98;
     } else if (abs < 1.5) {
-      audio.playbackRate = diff > 0 ? 1.06 : 0.94;
+      rateAdjust = diff > 0 ? 1.06 : 0.94;
     } else if (abs < 2.0) {
-      audio.playbackRate = diff > 0 ? 1.1 : 0.9;
+      rateAdjust = diff > 0 ? 1.1 : 0.9;
     } else {
-      audio.playbackRate = 1.0;
+      rateAdjust = 1.0;
       jumpAudioToVideo();
     }
+
+    audio.playbackRate = selectedPlaybackRate.value * rateAdjust;
   }
 
   video.addEventListener("waiting", () => {
@@ -223,7 +273,10 @@ function setupSyncPlayback() {
   });
 
   video.onplay = () => {
+    video.playbackRate = selectedPlaybackRate.value;
+    audio.playbackRate = selectedPlaybackRate.value;
     audio.play().catch(console.warn);
+
     if (!isStartupJumpDone) {
       setTimeout(() => {
         audio.currentTime = Math.max(0, video.currentTime - 0.05);
@@ -241,7 +294,22 @@ function setupSyncPlayback() {
     diffText.value = `${(diff * 1000).toFixed(0)} ms`;
     correctPlaybackRate(diff);
   };
+
+  video.playbackRate = selectedPlaybackRate.value;
+  audio.playbackRate = selectedPlaybackRate.value;
 }
+
+onMounted(() => {
+  setCookie("audioJumpCooldown", "false", 1);
+  watchStreamTypeCookie();
+  setupAutoHide();
+  resetSettingsVisibility();
+});
+
+onBeforeUnmount(() => {
+  if (cookieWatchInterval) clearInterval(cookieWatchInterval);
+  removeAutoHide();
+});
 </script>
 
 <style scoped>
@@ -260,16 +328,48 @@ function setupSyncPlayback() {
   width: 100%;
   height: 100%;
 }
-.quality-selector {
+
+.settings-box {
   position: absolute;
   top: 10px;
   right: 10px;
-  z-index: 10;
+  z-index: 20;
   background: rgba(0, 0, 0, 0.75);
   color: white;
-  padding: 6px 10px;
-  border-radius: 6px;
+  padding: 10px;
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 14px;
+  transition: opacity 0.3s ease;
 }
+
+.selector {
+  background: #222;
+  color: white;
+  border: 1px solid #555;
+  padding: 4px 8px;
+  border-radius: 6px;
+  margin-left: 6px;
+}
+
+.reload-button {
+  margin-top: 6px;
+  padding: 6px 12px;
+  font-size: 9px;
+  background: #444;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  width: 50%;
+}
+.reload-button:hover {
+  background: #666;
+}
+
 audio {
   display: none;
 }

@@ -294,7 +294,7 @@ export default {
       )}; expires=${expires}; path=/`;
     },
     onStreamTypeChange() {
-      this.setCookie("StreamType", this.streamTypeCookie, 3600);
+      this.setCookie("StreamType", this.streamTypeCookie, 99999);
     },
     async fetchVideoData(id) {
       try {
