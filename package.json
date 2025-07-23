@@ -2,6 +2,9 @@
   "name": "my-app",
   "version": "1.0.0",
   "type": "module",
+  "engines": {
+  "node": ">=20.0.0"
+  },
   "scripts": {
     "start": "concurrently \"node server/index.js\" \"npm run dev --prefix client\"",
     "postinstall": "npm install --prefix client"

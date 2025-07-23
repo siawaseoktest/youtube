@@ -237,7 +237,7 @@ export default {
   display: flex;
   gap: 8px;
   align-items: center;
-  margin-top: 8px;
+  margin-top: 4px;
 }
 
 .comment-date,

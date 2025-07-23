@@ -111,7 +111,7 @@
           @mouseenter="hoverId = r.videoId"
           @mouseleave="hoverId = null"
         >
-          <router-link :to="`/watch?v=${r.videoId}`" class="page-link">
+          <router-link v-if="r.videoId" :to="r.replaylistId && r.replaylistId.length > 20 ? `/watch?v=${r.videoId}&list=${r.replaylistId}` : `/watch?v=${r.videoId}`" class="page-link">
             <div class="thumb-wrapper">
               <img
                 v-if="hoverId !== r.videoId || !r.previewUrl"
@@ -138,15 +138,14 @@
               </span>
             </div>
           </router-link>
-          <router-link :to="`/watch?v=${r.videoId}`" class="page-link">
+          <router-link v-if="r.videoId" :to="r.replaylistId && r.replaylistId.length > 20 ? `/watch?v=${r.videoId}&list=${r.replaylistId}` : `/watch?v=${r.videoId}`" class="page-link">
             <div class="video-info">
-              <span class="video-title-related" :title="r.title">{{
-                r.title
-              }}</span>
+              <span class="video-title-related" :title="r.title">{{ r.title }}</span>
               <div class="video-metadata">
-                <div class="one-line">{{ r.metadataRow1 }}</div>
-                {{ r.metadataRow2Part1 }}<span class="dot">・</span
-                >{{ r.metadataRow2Part2 }}
+                <div class="one-line re-actername">{{ r.metadataRow1 }}</div>
+                <span v-if="r.metadataRow2Part1 !== '本日更新'">{{ r.metadataRow2Part1 === '再生リストの全体を見る' ? '再生リスト' : r.metadataRow2Part1 }}</span>
+                <span v-if="r.metadataRow2Part2" class="dot">・</span>
+                {{ r.metadataRow2Part2 }}
               </div>
             </div>
           </router-link>
@@ -274,8 +273,9 @@ export default {
           metadataRow2Part2:
             metadataRows[1]?.metadata_parts?.[1]?.text?.text || "",
           videoId:
-            item.renderer_context?.command_context?.on_tap?.payload?.videoId ||
-            "",
+            item.renderer_context?.command_context?.on_tap?.payload?.videoId || "",
+          replaylistId:
+            item.renderer_context?.command_context?.on_tap?.payload?.playlistId || "",
         };
       });
     },
@@ -402,6 +402,10 @@ export default {
   white-space: nowrap;
 }
 
+.re-actername{
+  margin-bottom: 3px;
+}
+
 .custom-dropdown-menu {
   position: absolute;
   top: 100%;
@@ -508,7 +512,7 @@ p {
   line-height: 1.5;
   margin-top: 12px;
   margin-bottom: 15px;
-  white-space: pre-wrap; /* 改行をそのまま反映 */
+  white-space: pre-wrap; 
   word-break: break-word;
 }
 .description-preview {
@@ -653,7 +657,7 @@ p {
   color: #444;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 999px) {
   .page-container {
     flex-direction: column;
   }
