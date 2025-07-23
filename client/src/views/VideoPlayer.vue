@@ -51,7 +51,7 @@
               class="custom-dropdown-item"
               @click.stop="selectStreamType('2')"
             >
-              再生できない場合こちらにしてください
+              再生できない場合こちら
             </div>
           </div>
         </div>
