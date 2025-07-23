@@ -237,7 +237,11 @@ export default {
   display: flex;
   gap: 8px;
   align-items: center;
-  margin-top: 4px;
+  margin-bottom: 4px;
+}
+
+.comment-likes{
+  margin-top: 6px;
 }
 
 .comment-date,
