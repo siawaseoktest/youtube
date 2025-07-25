@@ -2,6 +2,7 @@
 開発中です
 
 はじめにフォークしてからやってください
+[https://github.com/siawaseoktest/youtube/fork](https://github.com/siawaseoktest/youtube/fork)
 
 
 ### ビルドコマンド
