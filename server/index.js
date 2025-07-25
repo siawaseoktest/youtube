@@ -1,5 +1,8 @@
 import express from "express";
 import fetch from "node-fetch";
+import path from "path";
+import { fileURLToPath } from "url";
+
 import ytimg from "./yt-img.js";
 import suggestRouter from "./routes/suggest.js"; 
 import searchRouter from "./routes/search.js";
@@ -13,10 +16,14 @@ import fallbackRoute from "./routes/fallback.js";
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+// ESM用 __dirname を作る
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 // ミドルウェア
 app.use(express.json());
 
-// ルーティング
+// API ルーティング
 app.use("/", ytimg);
 app.use("/api/search", searchRouter);
 app.use("/api/suggest", suggestRouter);
@@ -41,6 +48,17 @@ app.get("/api/trend", async (req, res) => {
   } catch (error) {
     res.status(500).json({ error: error.message || "トレンドデータ取得失敗" });
   }
+});
+
+
+// 🔻 ここからVueのビルド成果物を静的に配信（超重要）🔻
+
+// distを静的ファイルとして配信（HTML, JS, CSS, assetsなど）
+app.use(express.static(path.join(__dirname, "../client/dist")));
+
+// SPAのための fallback（Vue Routerのhistory対応）
+app.get("*", (req, res) => {
+  res.sendFile(path.join(__dirname, "../client/dist/index.html"));
 });
 
 // サーバ起動

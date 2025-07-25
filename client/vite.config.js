@@ -9,6 +9,7 @@ export default defineConfig({
       "@": path.resolve(__dirname, "src"),
     },
   },
+  base: "./", 
   server: {
     allowedHosts: ["tpj4gl-5173.csb.app"],
     proxy: {
