@@ -4,89 +4,9 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>数学をできるに！</title>
-    <style>
-      body {
-        background-color: #fff;
-        font-family: Meiryo, "メイリオ", sans-serif;
-        margin: 0;
-        padding: 0;
-      }
-
-      #cookie-popup {
-        position: fixed;
-        right: 20px;
-        bottom: 20px;
-        max-width: 320px;
-        background: #f8f8f8;
-        border: 1px solid #ccc;
-        border-radius: 8px;
-        padding: 16px;
-        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
-        z-index: 9999;
-        display: none;
-      }
-
-      #cookie-popup p {
-        margin: 0;
-        font-size: 14px;
-        color: #333;
-      }
-
-      #cookie-popup button {
-        margin-top: 10px;
-        padding: 6px 12px;
-        font-size: 14px;
-        border: none;
-        background-color: #0078d4;
-        color: white;
-        border-radius: 4px;
-        cursor: pointer;
-      }
-
-      #cookie-popup button:hover {
-        background-color: #005fa3;
-      }
-
-      #external-html {
-        display: none;
-        width: 100vw;
-        height: 100vh;
-      }
-
-      #external-html {
-        overflow: auto;
-      }
-
-      /* noscript表示 */
-      noscript {
-        display: block;
-        padding: 2em;
-        background: #fffbe6;
-        color: #333;
-        text-align: center;
-        font-family: Meiryo, "メイリオ", sans-serif;
-      }
-
-      noscript a {
-        color: #0078d4;
-        text-decoration: underline;
-      }
-    </style>
   </head>
   <body>
-    <!-- SPA -->
     <div id="app"></div>
-    <script type="module" src="/src/main.js"></script>
-
-    <!-- Cookie未許可時に外部HTMLを差し込む -->
-    <div id="external-html"></div>
-
-    <!-- Cookie同意ポップアップ -->
-    <div id="cookie-popup">
-      <p>本サイトはCookieを使用します。許可しますか？</p>
-      <button id="accept-cookies">はい、許可します</button>
-    </div>
-
     <noscript>
       <h1>JavaScriptが無効です</h1>
       <p>
@@ -101,73 +21,7 @@
       </p>
     </noscript>
 
-    <script>
-      const consentKey = "cookie_consent";
-
-      function hasCookieConsent() {
-        return document.cookie.includes(`${consentKey}=true`);
-      }
-
-      function setCookieConsent() {
-        const expires = new Date(Date.now() + 365 * 864e5).toUTCString();
-        document.cookie = `${consentKey}=true; path=/; expires=${expires}`;
-      }
-
-      function showApp() {
-        document.getElementById("cookie-popup").style.display = "none";
-        document.getElementById("external-html").style.display = "none";
-        const app = document.getElementById("app");
-        app.style.display = "block";
-        import("/src/main.js").catch((err) =>
-          console.error("SPAの読み込みに失敗:", err)
-        );
-      }
-
-      async function showConsentScreenWithServerHtml() {
-        const popup = document.getElementById("cookie-popup");
-        const external = document.getElementById("external-html");
-
-        popup.style.display = "block";
-        external.style.display = "block";
-
-        try {
-          const res = await fetch("/api/fallback");
-          if (!res.ok) throw new Error("サーバーからHTML取得失敗");
-          const htmlText = await res.text();
-
-          // body部分だけ抽出（<body>タグがある場合のみ）
-          const bodyMatch = htmlText.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
-          const bodyContent = bodyMatch ? bodyMatch[1] : htmlText;
-
-          // styleタグ抽出しheadに挿入
-          const styleRegex = /<style[^>]*>([\s\S]*?)<\/style>/gi;
-          let styleMatch;
-          while ((styleMatch = styleRegex.exec(htmlText)) !== null) {
-            const styleEl = document.createElement("style");
-            styleEl.textContent = styleMatch[1];
-            document.head.appendChild(styleEl);
-          }
-
-          external.innerHTML = bodyContent;
-        } catch (err) {
-          external.innerHTML =
-            '<p style="padding:1em;color:red;">外部HTMLの読み込みに失敗しました。</p>';
-          console.error(err);
-        }
-        document
-          .getElementById("accept-cookies")
-          .addEventListener("click", () => {
-            setCookieConsent();
-            document.cookie = "streamTypeCookie=; path=/;";
-            showApp();
-          });
-      }
-
-      if (hasCookieConsent()) {
-        showApp();
-      } else {
-        showConsentScreenWithServerHtml();
-      }
-    </script>
+    <!-- Vueのビルド済みJSを読み込む -->
+    <script type="module" src="/src/main.js"></script>
   </body>
 </html>
