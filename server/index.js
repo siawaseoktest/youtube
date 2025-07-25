@@ -50,13 +50,8 @@ app.get("/api/trend", async (req, res) => {
   }
 });
 
-
-// 🔻 ここからVueのビルド成果物を静的に配信（超重要）🔻
-
-// distを静的ファイルとして配信（HTML, JS, CSS, assetsなど）
 app.use(express.static(path.join(__dirname, "../client/dist")));
 
-// SPAのための fallback（Vue Routerのhistory対応）
 app.get("*", (req, res) => {
   res.sendFile(path.join(__dirname, "../client/dist/index.html"));
 });
