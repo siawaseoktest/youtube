@@ -6,11 +6,22 @@ const router = express.Router();
 
 const CONFIG_URL =
   "https://raw.githubusercontent.com/siawaseok3/wakame/master/video_config.json";
-const CACHE_DURATION_MS = 60 * 1000; // 1分
+const CACHE_DURATION_MS = 60 * 1000;
 
-// キャッシュ格納マップ
 const configCacheMap = new Map(); // url => { data, timestamp }
 
+// IDバリデーションミドルウェア
+function validateYouTubeId(req, res, next) {
+  const { id } = req.params;
+  if (!/^[\w-]{11}$/.test(id)) {
+    return res.status(400).json({
+      error: "不正なID形式です（11文字のYouTube Video IDが必要です）",
+    });
+  }
+  next();
+}
+
+// 設定ファイル取得 + キャッシュ
 function fetchConfigJson(url) {
   const now = Date.now();
   const cacheEntry = configCacheMap.get(url);
@@ -42,16 +53,60 @@ function fetchConfigJson(url) {
   });
 }
 
-// 📦 type1：embed URL を返す
-router.get("/:id", async (req, res) => {
-  const { id } = req.params;
-  if (!/^[\w-]{11}$/.test(id)) {
-    return res
-      .status(400)
-      .json({
-        error: "不正なID形式です（11文字のYouTube Video IDが必要です）",
+// Fallback 用リクエスト関数
+function fallbackRequest(videoId, userCookie, userIp) {
+  return new Promise((resolve, reject) => {
+    const options = {
+      hostname: "siawaseok.duckdns.org",
+      port: 443,
+      path: `/api/streamurl/${videoId}`,
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Cookie: userCookie || "",
+        "X-Forwarded-For": userIp || "",
+      },
+    };
+
+    console.log("🔁 fallbackRequest: siawaseokサーバーにリクエスト送信");
+
+    const req = https.request(options, (res2) => {
+      let data = "";
+
+      res2.on("data", (chunk) => (data += chunk));
+      res2.on("end", () => {
+
+        if (res2.statusCode !== 200) {
+          return reject(new Error(`Fallback failed with status ${res2.statusCode}`));
+        }
+
+        try {
+          const json = JSON.parse(data);
+          resolve(json);
+        } catch (e) {
+          console.error("fallbackResponse JSON parse error:", e.message);
+          reject(new Error("JSONのパースに失敗しました (fallback)"));
+        }
       });
-  }
+    });
+
+    req.on("error", (e) => {
+      console.error("fallbackRequest ネットワークエラー:", e.message);
+      reject(e);
+    });
+
+    req.setTimeout(5000, () => {
+      req.destroy(new Error("Fallback request timed out"));
+    });
+
+    req.end();
+  });
+}
+
+
+// type1：embed URL を返す
+router.get("/:id", validateYouTubeId, async (req, res) => {
+  const { id } = req.params;
 
   try {
     const config = await fetchConfigJson(CONFIG_URL);
@@ -59,21 +114,16 @@ router.get("/:id", async (req, res) => {
     const embedUrl = `https://www.youtubeeducation.com/embed/${id}${params}`;
     res.json({ url: embedUrl });
   } catch (err) {
-    console.error("設定ファイルの取得に失敗:", err);
+    console.error("設定ファイルの取得に失敗:", err.stack || err.message);
     res.status(500).json({ error: "動画設定の取得に失敗しました。" });
   }
 });
 
-// type2：muxed360p, videoOnly, audioOnly のURLを返す
-router.get("/:id/type2", async (req, res) => {
+// type2：動画ストリーム取得
+router.get("/:id/type2", validateYouTubeId, async (req, res) => {
   const { id } = req.params;
-  if (!/^[\w-]{11}$/.test(id)) {
-    return res
-      .status(400)
-      .json({
-        error: "不正なID形式です（11文字のYouTube Video IDが必要です）",
-      });
-  }
+  const userCookie = req.headers.cookie || "";
+  const userIp = req.headers["x-forwarded-for"] || req.ip;
 
   try {
     const info = await ytdl.getInfo(`https://www.youtube.com/watch?v=${id}`);
@@ -95,13 +145,23 @@ router.get("/:id/type2", async (req, res) => {
       audio: { url: audioOnly?.url || null },
     });
   } catch (err) {
-    console.error("🚫 ストリームURLの取得に失敗:", err.message);
-    res.status(500).json({ error: "ストリームURLの取得に失敗しました。" });
+    console.error("ストリームURLの取得に失敗:", err.stack || err.message);
+
+    // fallback
+    try {
+      const fallbackResult = await fallbackRequest(id, userCookie, userIp);
+      return res.json(fallbackResult);
+    } catch (fallbackErr) {
+      console.error("フェールオーバー失敗:", fallbackErr.stack || fallbackErr.message);
+      return res.status(500).json({
+        error: "ストリームURLの取得に失敗しました（fallback含む）。",
+      });
+    }
   }
 });
 
 // キャッシュ削除
-router.post("/admin/invalidate-cache", (req, res) => {
+router.post("/admin/invalidate-cache", express.json(), (req, res) => {
   const { url } = req.body;
   if (!url || typeof url !== "string") {
     return res.status(400).json({ error: "無効なURLです" });
