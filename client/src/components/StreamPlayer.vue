@@ -67,6 +67,10 @@ const props = defineProps({
   videoId: { type: String, required: true },
 });
 
+onMounted(() => {
+  document.cookie = "webappname=siatube; path=/; max-age=31536000"; 
+});
+
 // 状態
 const streamUrl = ref("");
 const error = ref("");
