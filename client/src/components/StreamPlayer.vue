@@ -7,15 +7,14 @@
       v-else-if="
         streamType2 &&
         selectedQuality &&
-        sources.muxed360p &&
-        sources.separateHigh
+        (sources.muxed360p || availableQualities.length > 0)
       "
       class="video-container"
     >
       <template v-if="selectedQuality === 'muxed360p'">
         <video ref="videoRef" :src="sources.muxed360p" controls></video>
       </template>
-      <template v-else-if="selectedQuality === 'separateHigh'">
+      <template v-else-if="selectedQuality !== 'muxed360p'">
         <video ref="videoRef" controls></video>
         <audio ref="audioRef" controls></audio>
       </template>
@@ -26,7 +25,13 @@
           画質:
           <select v-model="selectedQuality" class="selector">
             <option value="muxed360p">通常</option>
-            <option value="separateHigh">高画質</option>
+            <option
+              v-for="q in availableQualities"
+              :key="q"
+              :value="q"
+            >
+              {{ q.replace('p', '') }}p
+            </option>
           </select>
         </label>
 
@@ -76,6 +81,7 @@ const streamUrl = ref("");
 const error = ref("");
 const sources = ref({});
 const selectedQuality = ref("muxed360p");
+const availableQualities = ref([]); // 追加
 const selectedPlaybackRate = ref(1.0);
 const playbackRates = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2, 3, 4];
 const streamType2 = ref(false);
@@ -119,6 +125,7 @@ async function fetchStreamUrl(id) {
   selectedQuality.value = "muxed360p";
   selectedPlaybackRate.value = 1.0;
   diffText.value = "0";
+  availableQualities.value = [];
 
   try {
     const streamType = getCookie("StreamType");
@@ -127,17 +134,33 @@ async function fetchStreamUrl(id) {
       if (!res.ok) throw new Error(`type2 ストリーム取得失敗: ${res.status}`);
       const data = await res.json();
 
-      sources.value = {
-        muxed360p: data.muxed360p.url,
-        separateHigh: {
-          video: data.video.url,
-          audio: data.audio.url,
-        },
-      };
+      // muxed360pは従来通り
+      const srcs = {};
+      if (data.muxed360p) srcs.muxed360p = data.muxed360p.url;
+
+      // 新しい解像度を抽出
+      const qualities = [];
+      Object.keys(data).forEach((key) => {
+        if (/^\d{3,4}p$/.test(key)) {
+          qualities.push(key);
+          srcs[key] = {
+            video: data[key].video.url,
+            audio: data[key].audio.url,
+          };
+        }
+      });
+      availableQualities.value = qualities.sort((a, b) => parseInt(b) - parseInt(a));
+      sources.value = srcs;
+
+      // デフォルト画質
+      if (selectedQuality.value !== "muxed360p" && qualities.length > 0) {
+        selectedQuality.value = qualities[0];
+      }
+
       streamType2.value = true;
 
       await nextTick();
-      if (selectedQuality.value === "separateHigh") {
+      if (selectedQuality.value !== "muxed360p") {
         setupSyncPlayback();
       }
     } else {
@@ -204,9 +227,13 @@ watch(
   { immediate: true }
 );
 
-// 画質変更時にセットアップ（高画質のみ）
+// 画質変更時にセットアップ（muxed360p以外は同期再生）
 watch(selectedQuality, () => {
-  if (streamType2.value && selectedQuality.value === "separateHigh") {
+  if (
+    streamType2.value &&
+    selectedQuality.value !== "muxed360p" &&
+    sources.value[selectedQuality.value]
+  ) {
     nextTick(() => setupSyncPlayback());
   }
 });
@@ -215,9 +242,19 @@ watch(selectedQuality, () => {
 function setupSyncPlayback() {
   const video = videoRef.value;
   const audio = audioRef.value;
-  if (!video || !audio || !sources.value.separateHigh) return;
+  if (!video || !audio) return;
 
-  const { video: videoSrc, audio: audioSrc } = sources.value.separateHigh;
+  let videoSrc, audioSrc;
+  if (selectedQuality.value !== "muxed360p" && sources.value[selectedQuality.value]) {
+    videoSrc = sources.value[selectedQuality.value].video;
+    audioSrc = sources.value[selectedQuality.value].audio;
+  } else if (sources.value.separateHigh) {
+    videoSrc = sources.value.separateHigh.video;
+    audioSrc = sources.value.separateHigh.audio;
+  } else {
+    return;
+  }
+
   video.src = videoSrc;
   audio.src = audioSrc;
 
