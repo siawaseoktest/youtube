@@ -50,6 +50,7 @@
   </section>
 </template>
 <script>
+import api from '../api.js';
 export default {
   name: "Comment",
   props: {
@@ -90,7 +91,9 @@ export default {
       this.totalCommentCount = null;
 
       try {
-        const res = await fetch(`/api/comments/${this.videoId}`);
+        const res = await api.get(`/comments/${this.videoId}`);
+        const data = res.data;
+        this.totalCommentCount = data.totalCommentCount ?? null;;
 
         if (!res.ok) {
           throw new Error(`HTTP error! status: ${res.status}`);

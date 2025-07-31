@@ -26,6 +26,7 @@
 </template>
 
 <script>
+import api from '../api.js';
 import VideoList from "@/components/VideoList.vue";
 
 export default {
@@ -67,10 +68,8 @@ export default {
       this.loading = true;
       this.error = null;
       try {
-        const res = await fetch("/api/trend");
-        if (!res.ok) throw new Error("データ取得失敗");
-        const data = await res.json();
-        this.trend = data;
+        const res = await api.get('/trend');
+        this.trend = res.data;
       } catch (e) {
         this.error = e.message;
       } finally {

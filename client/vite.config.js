@@ -10,11 +10,11 @@ export default defineConfig({
     },
   },
   server: {
-    allowedHosts: ["tpj4gl-5173.csb.app"],
     proxy: {
       "/api": {
-        target: "http://localhost:5000",
+        target: "https://siawaseok.duckdns.org",  
         changeOrigin: true,
+        secure: false,  
       },
     },
   },

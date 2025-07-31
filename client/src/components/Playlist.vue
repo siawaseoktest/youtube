@@ -66,6 +66,7 @@
 </template>
 
 <script setup>
+import api from '../api.js';
 import { ref, onMounted, nextTick, computed } from "vue";
 import { useRoute } from "vue-router";
 
@@ -102,9 +103,9 @@ onMounted(async () => {
   error.value = false;
 
   try {
-    const res = await fetch(`/api/playlist/${playlistId.value}`);
-    if (!res.ok) throw new Error(`HTTPエラー: ${res.status}`);
-    playlist.value = await res.json();
+    const res = await api.get(`/playlist/${playlistId.value}`);
+    playlist.value = res.data;
+
 
     console.log("取得プレイリスト:", playlist.value);
     console.log("表示タイプ:", displayType.value);

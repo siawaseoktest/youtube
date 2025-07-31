@@ -172,6 +172,7 @@ const playlistId = computed(() => route.query.list);
 </script>
 
 <script>
+import api from '../api.js';
 export default {
   props: {
     videoId: { type: String, required: true },
@@ -300,9 +301,8 @@ export default {
       try {
         this.video = null;
         this.error = null;
-        const res = await fetch(`/api/video/${id}`);
-        if (!res.ok) throw new Error(`動画取得エラー: HTTP ${res.status}`);
-        this.video = await res.json();
+        const res = await api.get(`/video/${id}`);
+        this.video = res.data;
       } catch (err) {
         console.error("取得失敗:", err);
         this.error = "動画情報を取得できませんでした。";

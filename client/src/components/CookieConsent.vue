@@ -23,6 +23,7 @@
 </template>
 
 <script>
+import api from '../api.js';
 export default {
   name: "CookieConsent",
   data() {
@@ -42,9 +43,9 @@ export default {
     },
     async loadExternalHtml() {
       try {
-        const res = await fetch("/api/fallback");
-        if (!res.ok) throw new Error("サーバーからHTML取得失敗");
-        const htmlText = await res.text();
+        const res = await api.get("/fallback", { responseType: "text" });
+        const htmlText = res.data;
+
 
         const bodyMatch = htmlText.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
         const bodyContent = bodyMatch ? bodyMatch[1] : htmlText;
@@ -66,7 +67,7 @@ export default {
     },
     acceptCookies() {
       this.setCookieConsent();
-      document.cookie = "streamTypeCookie=; path=/;"; // 不要cookie削除
+      document.cookie = "streamTypeCookie=; path=/;"; 
       this.consentGiven = true;
       this.$emit("consent-given");
     },

@@ -146,6 +146,7 @@
 import { ref, onMounted, watch } from "vue";
 import { useRoute } from "vue-router";
 import VideoList from "@/components/Playlist.vue";
+import api from '../api.js';  // ← ここは相対パスに注意してください
 
 export default {
   components: { VideoList },
@@ -170,10 +171,8 @@ export default {
 
     async function fetchChannelInfo(channelId) {
       try {
-        const res = await fetch(`/api/channel/${channelId}`);
-        if (!res.ok) throw new Error("チャンネル情報取得失敗");
-        const data = await res.json();
-        channel.value = data;
+        const res = await api.get(`/channel/${channelId}`);
+        channel.value = res.data;
       } catch (err) {
         console.error("ChannelView エラー:", err);
       }

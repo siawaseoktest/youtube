@@ -57,6 +57,7 @@
 </template>
 
 <script setup>
+import api from '../api.js';
 import { ref, onMounted, onBeforeUnmount } from "vue";
 
 const emit = defineEmits(["search"]);
@@ -89,20 +90,20 @@ const fetchSuggestions = async (keyword) => {
     selectedIndex.value = -1;
     return;
   }
-  if (fetchController) fetchController.abort();
-  fetchController = new AbortController();
+
+  if (fetchController) fetchController.abort?.();
+  const controller = new AbortController();
+  fetchController = controller;
 
   try {
-    const res = await fetch(
-      `/api/suggest?keyword=${encodeURIComponent(keyword)}`,
-      { signal: fetchController.signal }
-    );
-    if (!res.ok) throw new Error("Network error");
-    const data = await res.json();
-    suggestions.value = data;
+    const res = await api.get("/suggest", {
+      params: { keyword },
+      signal: controller.signal,
+    });
+    suggestions.value = res.data;
     selectedIndex.value = -1;
   } catch (e) {
-    if (e.name !== "AbortError") {
+    if (e.name !== "CanceledError" && e.name !== "AbortError") {
       suggestions.value = [];
       selectedIndex.value = -1;
       console.error(e);

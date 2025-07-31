@@ -130,9 +130,8 @@ async function fetchStreamUrl(id) {
   try {
     const streamType = getCookie("StreamType");
     if (streamType === "2") {
-      const res = await fetch(`/api/stream/${id}/type2`);
-      if (!res.ok) throw new Error(`type2 ストリーム取得失敗: ${res.status}`);
-      const data = await res.json();
+      const res = await api.get(`/stream/${id}/type2`);
+      const data = res.data;
 
       // muxed360pは従来通り
       const srcs = {};
@@ -164,9 +163,8 @@ async function fetchStreamUrl(id) {
         setupSyncPlayback();
       }
     } else {
-      const res = await fetch(`/api/stream/${id}`);
-      if (!res.ok) throw new Error(`ストリーム取得失敗: ${res.status}`);
-      const data = await res.json();
+      const res = await api.get(`/stream/${id}`);
+      const data = res.data;
       if (!data.url) throw new Error("ストリームURLが空です");
       streamUrl.value = data.url;
     }

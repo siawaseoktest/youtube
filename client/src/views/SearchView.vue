@@ -16,6 +16,7 @@
 </template>
 
 <script>
+import api from '../api.js';
 import VideoList from "@/components/VideoList.vue";
 
 export default {
@@ -53,10 +54,8 @@ export default {
       this.error = null;
 
       try {
-        const res = await fetch(`/api/search?q=${encodeURIComponent(q)}`);
-        if (!res.ok) throw new Error("検索APIでエラーが発生しました");
-        const data = await res.json();
-        this.videos = data.results || [];
+        const res = await api.get('/search', { params: { q: q } });
+        this.videos = res.data.results || [];
       } catch (e) {
         this.error = e.message || "検索に失敗しました";
       } finally {
