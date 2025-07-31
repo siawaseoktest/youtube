@@ -65,6 +65,7 @@
 </template>
 
 <script setup>
+import api from '../api.js';
 import { ref, watch, onMounted, onBeforeUnmount, nextTick } from "vue";
 
 // props

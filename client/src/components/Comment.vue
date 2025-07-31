@@ -93,13 +93,6 @@ export default {
       try {
         const res = await api.get(`/comments/${this.videoId}`);
         const data = res.data;
-        this.totalCommentCount = data.totalCommentCount ?? null;;
-
-        if (!res.ok) {
-          throw new Error(`HTTP error! status: ${res.status}`);
-        }
-
-        const data = await res.json();
 
         this.totalCommentCount = data.totalCommentCount ?? null;
 
@@ -115,7 +108,7 @@ export default {
             isClamped: false,
           }));
         } else {
-          this.comments = [];
+      this.comments = [];
         }
       } catch (err) {
         console.error("コメント取得エラー:", err);
