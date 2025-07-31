@@ -10,7 +10,6 @@ const CACHE_DURATION_MS = 60 * 1000;
 
 const configCacheMap = new Map(); // url => { data, timestamp }
 
-// IDバリデーションミドルウェア
 function validateYouTubeId(req, res, next) {
   const { id } = req.params;
   if (!/^[\w-]{11}$/.test(id)) {
@@ -125,29 +124,50 @@ router.get("/:id/type2", validateYouTubeId, async (req, res) => {
   const userCookie = req.headers.cookie || "";
   const userIp = req.headers["x-forwarded-for"] || req.ip;
 
+  // WebM 映像 itag 一覧（video-only）
+  const webmItags = {
+    "4320p": 272,
+    "2160p": 266,
+    "1440p": 264,
+    "1080p": 248,
+    "720p": 247,
+    "480p": 244,
+  };
+
   try {
     const info = await ytdl.getInfo(`https://www.youtube.com/watch?v=${id}`);
     const formats = info.formats;
 
+    // 映像＋音声の360p（muxed）
     const muxed360p = formats
-      .filter((f) => f.hasVideo && f.hasAudio && f.height === 360)
+      .filter(f => f.hasVideo && f.hasAudio && f.height === 360)
       .sort((a, b) => (b.bitrate || 0) - (a.bitrate || 0))[0];
 
-    const videoOnly = formats.find((f) => f.itag === 136);
-
+    // 音声のみ（最高音質1つ）
     const audioOnly = formats
-      .filter((f) => f.hasAudio && !f.hasVideo)
+      .filter(f => f.hasAudio && !f.hasVideo)
       .sort((a, b) => (b.audioBitrate || 0) - (a.audioBitrate || 0))[0];
 
-    res.json({
+    // WebM映像（itag指定）
+    const resolutionMap = {};
+    for (const [label, itag] of Object.entries(webmItags)) {
+      const video = formats.find(f => f.itag === itag && f.container === "webm");
+      if (video) {
+        resolutionMap[label] = {
+          video: { url: video.url },
+          audio: { url: audioOnly?.url || null },
+        };
+      }
+    }
+
+    // レスポンス生成
+    return res.json({
       muxed360p: { url: muxed360p?.url || null },
-      video: { url: videoOnly?.url || null },
-      audio: { url: audioOnly?.url || null },
+      ...resolutionMap,
     });
   } catch (err) {
     console.error("ストリームURLの取得に失敗:", err.stack || err.message);
 
-    // fallback
     try {
       const fallbackResult = await fallbackRequest(id, userCookie, userIp);
       return res.json(fallbackResult);
