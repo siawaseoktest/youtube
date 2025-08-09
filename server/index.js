@@ -24,7 +24,7 @@ const __dirname = path.dirname(__filename);
 app.use(express.json());
 
 // API ルーティング
-app.use("/", ytimg);
+app.use("/api/yt-img", ytimg);
 app.use("/api/search", searchRouter);
 app.use("/api/suggest", suggestRouter);
 app.use("/api/video", videoRouter);
