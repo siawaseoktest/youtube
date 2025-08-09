@@ -44,7 +44,7 @@ async function tryFetchImage(res, id, index = 0) {
   }
 }
 
-router.get("/api/yt-img", (req, res) => {
+router.get("/", (req, res) => {
   const id = req.query.id;
   if (!id || !/^[\w-]{11}$/.test(id)) {
     res.status(400).send("Invalid YouTube ID");
