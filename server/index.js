@@ -17,7 +17,7 @@ const PORT = process.env.PORT || 5000;
 app.use(express.json());
 
 // ルーティング
-app.use("/", ytimg);
+app.use("/api/yt-img", ytimg);
 app.use("/api/search", searchRouter);
 app.use("/api/suggest", suggestRouter);
 app.use("/api/video", videoRouter);
