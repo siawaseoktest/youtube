@@ -5,6 +5,7 @@ import VideoPlayer from "@/views/VideoPlayer.vue";
 import SearchView from "@/views/SearchView.vue";
 import ChannelView from "@/views/ChannelView.vue";
 import Playlist from "@/components/Playlist.vue"; 
+import '@/css.css'
 
 const routes = [
   {
