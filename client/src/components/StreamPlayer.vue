@@ -16,7 +16,7 @@
       </template>
       <template v-else-if="selectedQuality !== 'muxed360p'">
         <video ref="videoRef" controls></video>
-        <audio ref="audioRef" controls></audio>
+        <audio ref="audioRef" preload="auto" style="display:none;"></audio>
       </template>
 
       <!-- 設定ボックス -->
@@ -81,7 +81,7 @@ const streamUrl = ref("");
 const error = ref("");
 const sources = ref({});
 const selectedQuality = ref("muxed360p");
-const availableQualities = ref([]); // 追加
+const availableQualities = ref([]); 
 const selectedPlaybackRate = ref(1.0);
 const playbackRates = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2, 3, 4];
 const streamType2 = ref(false);
@@ -209,7 +209,6 @@ function removeAutoHide() {
 // 再生速度
 watch(selectedPlaybackRate, () => {
   if (videoRef.value) videoRef.value.playbackRate = selectedPlaybackRate.value;
-  // audio.playbackRate は correctPlaybackRate で常時補正されるため直接は変更しない
 });
 
 // StreamType変化時に再取得
@@ -242,6 +241,17 @@ function setupSyncPlayback() {
   const audio = audioRef.value;
   if (!video || !audio) return;
 
+  // Safari判定（iOS, macOS Safariのみ。ChromeやFirefoxは除外）
+  function isSafari() {
+    const ua = navigator.userAgent;
+    return (
+      /Safari/.test(ua) &&
+      !/Chrome/.test(ua) &&
+      (/iPhone|iPad|Macintosh/.test(ua))
+    );
+  }
+  const safariMode = isSafari();
+
   let videoSrc, audioSrc;
   if (selectedQuality.value !== "muxed360p" && sources.value[selectedQuality.value]) {
     videoSrc = sources.value[selectedQuality.value].video;
@@ -258,50 +268,58 @@ function setupSyncPlayback() {
 
   let isStartupJumpDone = false;
   let isBuffering = false;
-  let isSyncingPlayback = false; 
-
-  function isJumpCooldown() {
-    return getCookie("audioJumpCooldown") === "true";
-  }
-
-  function startJumpCooldown() {
-    setCookie("audioJumpCooldown", "true", 1);
-    setTimeout(() => setCookie("audioJumpCooldown", "false", 1), 1000);
-  }
+  let isSyncingPlayback = false;
+  let lastJumpTime = 0; // ms
+  const jumpCooldown = 500; // ジャンプ後補正無効時間(ms)
 
   function jumpAudioToVideo() {
-    if (isJumpCooldown()) return;
     const target = Math.max(0, video.currentTime - 0.05);
     audio.currentTime = target;
-    startJumpCooldown();
+    lastJumpTime = performance.now();
   }
 
   function correctPlaybackRate(diff) {
-    const abs = Math.abs(diff);
-    const maxJumpThreshold = 0.9; // 0.9秒以上で強制ジャンプ
+    if (safariMode) {
+      // Safariなら補正しない
+      audio.playbackRate = selectedPlaybackRate.value;
+      return;
+    }
 
-    if (abs >= maxJumpThreshold) {
+    const now = performance.now();
+
+    if (now - lastJumpTime < jumpCooldown) {
+      audio.playbackRate = selectedPlaybackRate.value;
+      return;
+    }
+
+    const abs = Math.abs(diff);
+
+    if (abs >= 0.9) {
       jumpAudioToVideo();
       return;
     }
 
+    let maxAdjust;
+
+    if (abs >= 0.8) {
+      maxAdjust = 0.85;
+    } else if (abs >= 0.2) {
+      maxAdjust = 0.75;
+    } else {
+      maxAdjust = 0.015;
+    }
+
+    // 15ms未満は補正不要
     if (abs < 0.015) {
       audio.playbackRate = selectedPlaybackRate.value;
       return;
     }
 
-    // 補正強度0%〜4%
-    const maxAdjust = 0.04; 
-    const adjustmentRatio = (abs / maxJumpThreshold) * maxAdjust;
-    const rateAdjust = 1 + adjustmentRatio * (diff > 0 ? 1 : -1);
+    const adjustmentRatio = abs / 0.9; // 0.9秒を基準に割合計算
+    const rateAdjust = 1 + adjustmentRatio * maxAdjust * (diff > 0 ? 1 : -1);
 
     audio.playbackRate = selectedPlaybackRate.value * rateAdjust;
   }
-
-  video.removeEventListener("play", playBoth);
-  audio.removeEventListener("play", playBoth);
-  video.removeEventListener("pause", pauseBoth);
-  audio.removeEventListener("pause", pauseBoth);
 
   function playBoth() {
     if (isSyncingPlayback) return;
@@ -318,16 +336,18 @@ function setupSyncPlayback() {
   function pauseBoth() {
     if (isSyncingPlayback) return;
     isSyncingPlayback = true;
-
     video.pause();
     audio.pause();
-
     isSyncingPlayback = false;
   }
 
+  video.removeEventListener("play", playBoth);
+  audio.removeEventListener("play", playBoth);
+  video.removeEventListener("pause", pauseBoth);
+  audio.removeEventListener("pause", pauseBoth);
+
   video.addEventListener("play", playBoth);
   audio.addEventListener("play", playBoth);
-
   video.addEventListener("pause", pauseBoth);
   audio.addEventListener("pause", pauseBoth);
 
@@ -339,6 +359,7 @@ function setupSyncPlayback() {
   video.addEventListener("playing", () => {
     if (isBuffering) {
       isBuffering = false;
+      jumpAudioToVideo();
       if (!video.paused) {
         audio.play().catch(() => {});
       }
@@ -352,7 +373,7 @@ function setupSyncPlayback() {
 
     if (!isStartupJumpDone) {
       setTimeout(() => {
-        audio.currentTime = Math.max(0, video.currentTime - 0.05);
+        jumpAudioToVideo();
         isStartupJumpDone = true;
       }, 100);
     }
@@ -362,11 +383,18 @@ function setupSyncPlayback() {
     setTimeout(() => jumpAudioToVideo(), 100);
   };
 
-  video.ontimeupdate = () => {
-    const diff = video.currentTime - audio.currentTime;
-    diffText.value = `${(diff * 1000).toFixed(0)} ms`;
-    correctPlaybackRate(diff);
-  };
+  function syncLoop() {
+    if (!video.paused && !audio.paused) {
+      const diff = video.currentTime - audio.currentTime;
+      diffText.value = `${(diff * 1000).toFixed(0)} ms`;
+
+      if (!safariMode) {
+        correctPlaybackRate(diff);
+      }
+    }
+    requestAnimationFrame(syncLoop);
+  }
+  requestAnimationFrame(syncLoop);
 
   video.playbackRate = selectedPlaybackRate.value;
   audio.playbackRate = selectedPlaybackRate.value;
