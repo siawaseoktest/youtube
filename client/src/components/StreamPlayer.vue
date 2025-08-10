@@ -134,11 +134,10 @@ async function fetchStreamUrl(id) {
       if (!res.ok) throw new Error(`type2 ストリーム取得失敗: ${res.status}`);
       const data = await res.json();
 
-      // muxed360pは従来通り
+      // muxed360p
       const srcs = {};
       if (data.muxed360p) srcs.muxed360p = data.muxed360p.url;
 
-      // 新しい解像度を抽出
       const qualities = [];
       Object.keys(data).forEach((key) => {
         if (/^\d{3,4}p$/.test(key)) {
@@ -227,7 +226,7 @@ watch(
   { immediate: true }
 );
 
-// 画質変更時にセットアップ（muxed360p以外は同期再生）
+// 画質変更時にセットアップ
 watch(selectedQuality, () => {
   if (
     streamType2.value &&
@@ -238,7 +237,6 @@ watch(selectedQuality, () => {
   }
 });
 
-// 高画質モードの映像・音声同期＆補正
 function setupSyncPlayback() {
   const video = videoRef.value;
   const audio = audioRef.value;
@@ -260,6 +258,7 @@ function setupSyncPlayback() {
 
   let isStartupJumpDone = false;
   let isBuffering = false;
+  let isSyncingPlayback = false; 
 
   function isJumpCooldown() {
     return getCookie("audioJumpCooldown") === "true";
@@ -279,23 +278,58 @@ function setupSyncPlayback() {
 
   function correctPlaybackRate(diff) {
     const abs = Math.abs(diff);
-    let rateAdjust = 1.0;
+    const maxJumpThreshold = 0.9; // 0.9秒以上で強制ジャンプ
 
-    if (abs < 0.01) {
-      rateAdjust = 1.0;
-    } else if (abs < 0.1) {
-      rateAdjust = diff > 0 ? 1.02 : 0.98;
-    } else if (abs < 1.5) {
-      rateAdjust = diff > 0 ? 1.06 : 0.94;
-    } else if (abs < 2.0) {
-      rateAdjust = diff > 0 ? 1.1 : 0.9;
-    } else {
-      rateAdjust = 1.0;
+    if (abs >= maxJumpThreshold) {
       jumpAudioToVideo();
+      return;
     }
+
+    if (abs < 0.015) {
+      audio.playbackRate = selectedPlaybackRate.value;
+      return;
+    }
+
+    // 補正強度0%〜4%
+    const maxAdjust = 0.04; 
+    const adjustmentRatio = (abs / maxJumpThreshold) * maxAdjust;
+    const rateAdjust = 1 + adjustmentRatio * (diff > 0 ? 1 : -1);
 
     audio.playbackRate = selectedPlaybackRate.value * rateAdjust;
   }
+
+  video.removeEventListener("play", playBoth);
+  audio.removeEventListener("play", playBoth);
+  video.removeEventListener("pause", pauseBoth);
+  audio.removeEventListener("pause", pauseBoth);
+
+  function playBoth() {
+    if (isSyncingPlayback) return;
+    isSyncingPlayback = true;
+
+    Promise.all([
+      video.paused ? video.play() : Promise.resolve(),
+      audio.paused ? audio.play() : Promise.resolve(),
+    ]).finally(() => {
+      isSyncingPlayback = false;
+    });
+  }
+
+  function pauseBoth() {
+    if (isSyncingPlayback) return;
+    isSyncingPlayback = true;
+
+    video.pause();
+    audio.pause();
+
+    isSyncingPlayback = false;
+  }
+
+  video.addEventListener("play", playBoth);
+  audio.addEventListener("play", playBoth);
+
+  video.addEventListener("pause", pauseBoth);
+  audio.addEventListener("pause", pauseBoth);
 
   video.addEventListener("waiting", () => {
     isBuffering = true;
@@ -305,18 +339,16 @@ function setupSyncPlayback() {
   video.addEventListener("playing", () => {
     if (isBuffering) {
       isBuffering = false;
-      if (!video.paused) audio.play().catch(console.warn);
+      if (!video.paused) {
+        audio.play().catch(() => {});
+      }
     }
-  });
-
-  video.addEventListener("pause", () => {
-    if (!audio.paused) audio.pause();
   });
 
   video.onplay = () => {
     video.playbackRate = selectedPlaybackRate.value;
     audio.playbackRate = selectedPlaybackRate.value;
-    audio.play().catch(console.warn);
+    audio.play().catch(() => {});
 
     if (!isStartupJumpDone) {
       setTimeout(() => {
