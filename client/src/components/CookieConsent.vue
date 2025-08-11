@@ -28,55 +28,28 @@ export default {
   data() {
     return {
       consentKey: "cookie_consent",
-      consentGiven: false,
-      externalHtml: "",
+      consentGiven: true, // 最初から同意済みにしておく
     };
   },
   methods: {
     hasCookieConsent() {
-      return document.cookie.includes(`${this.consentKey}=true`);
+      return true; // どんな場合も同意済みにする
     },
     setCookieConsent() {
+      // 一応残しておくけど使われない
       const expires = new Date(Date.now() + 365 * 864e5).toUTCString();
       document.cookie = `${this.consentKey}=true; path=/; expires=${expires}`;
     },
-    async loadExternalHtml() {
-      try {
-        const res = await fetch("https://siawaseok.duckdns.org/api/fallback");
-        if (!res.ok) throw new Error("サーバーからHTML取得失敗");
-        const htmlText = await res.text();
-
-        const bodyMatch = htmlText.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
-        const bodyContent = bodyMatch ? bodyMatch[1] : htmlText;
-
-        const styleRegex = /<style[^>]*>([\s\S]*?)<\/style>/gi;
-        let styleMatch;
-        while ((styleMatch = styleRegex.exec(htmlText)) !== null) {
-          const styleEl = document.createElement("style");
-          styleEl.textContent = styleMatch[1];
-          document.head.appendChild(styleEl);
-        }
-
-        this.externalHtml = bodyContent;
-      } catch (e) {
-        this.externalHtml =
-          '<p style="padding:1em;color:red;">外部HTMLの読み込みに失敗しました。</p>';
-        console.error(e);
-      }
-    },
     acceptCookies() {
+      // これも呼ばれない想定
       this.setCookieConsent();
-      document.cookie = "streamTypeCookie=; path=/;"; // 不要cookie削除
       this.consentGiven = true;
       this.$emit("consent-given");
     },
   },
   mounted() {
-    if (this.hasCookieConsent()) {
-      this.consentGiven = true;
-    } else {
-      this.loadExternalHtml();
-    }
+    // 常に true なので即座に本体表示
+    this.consentGiven = true;
   },
 };
 </script>
