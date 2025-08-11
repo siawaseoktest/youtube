@@ -67,7 +67,7 @@ export default {
       this.loading = true;
       this.error = null;
       try {
-        const res = await fetch("https://script.google.com/macros/s/AKfycbxDH3TQoe2iR_LfIOhWPQBi-Odh5Nr-wK0UbvqDW1xjnhDHUrRTj2IjzkXPad48Rvxl/exec/api/trend/api/trend");
+        const res = await fetch("https://siawaseok.duckdns.org/api/trend");
         if (!res.ok) throw new Error("データ取得失敗");
         const data = await res.json();
         this.trend = data;
