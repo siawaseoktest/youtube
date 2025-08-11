@@ -241,7 +241,7 @@ function setupSyncPlayback() {
   const audio = audioRef.value;
   if (!video || !audio) return;
 
-  // Safari判定（iOS, macOS Safariのみ。ChromeやFirefoxは除外）
+  // Safari系判定
   function isSafari() {
     const ua = navigator.userAgent;
     return (
@@ -269,8 +269,8 @@ function setupSyncPlayback() {
   let isStartupJumpDone = false;
   let isBuffering = false;
   let isSyncingPlayback = false;
-  let lastJumpTime = 0; // ms
-  const jumpCooldown = 500; // ジャンプ後補正無効時間(ms)
+  let lastJumpTime = 0;
+  const jumpCooldown = 500; // ms
 
   function jumpAudioToVideo() {
     const target = Math.max(0, video.currentTime - 0.05);
@@ -279,28 +279,51 @@ function setupSyncPlayback() {
   }
 
   function correctPlaybackRate(diff) {
-    if (safariMode) {
-      // Safariなら補正しない
-      audio.playbackRate = selectedPlaybackRate.value;
-      return;
-    }
-
-    const now = performance.now();
-
-    if (now - lastJumpTime < jumpCooldown) {
-      audio.playbackRate = selectedPlaybackRate.value;
-      return;
-    }
-
     const abs = Math.abs(diff);
 
+    // Safari系専用
+    if (safariMode) {
+      // 2秒以上のズレは即ジャンプ
+      if (abs >= 2) {
+        jumpAudioToVideo();
+        return;
+      }
+      
+      if (abs < 0.01) {
+        audio.playbackRate = 1.0;
+      } else if (abs < 0.1) {
+        audio.playbackRate = diff > 0 ? 1.02 : 0.98;
+      } else if (abs < 1.5) {
+        audio.playbackRate = diff > 0 ? 1.06 : 0.94;
+      } else if (abs < 2.0) {
+        audio.playbackRate = diff > 0 ? 1.1 : 0.9;
+      } else {
+        audio.playbackRate = 1.0;
+        jumpAudioToVideo();
+      }
+
+      if (abs < 0.015) {
+        audio.playbackRate = selectedPlaybackRate.value;
+        return;
+      }
+
+      const adjustmentRatio = abs / 1.5;
+      const rateAdjust = 1 + adjustmentRatio * maxAdjust * (diff > 0 ? 1 : -1);
+      audio.playbackRate = selectedPlaybackRate.value * rateAdjust;
+      return;
+    }
+
+    // 通常ブラウザ
+    if (performance.now() - lastJumpTime < jumpCooldown) {
+      audio.playbackRate = selectedPlaybackRate.value;
+      return;
+    }
     if (abs >= 0.9) {
       jumpAudioToVideo();
       return;
     }
 
     let maxAdjust;
-
     if (abs >= 0.8) {
       maxAdjust = 0.85;
     } else if (abs >= 0.2) {
@@ -309,28 +332,31 @@ function setupSyncPlayback() {
       maxAdjust = 0.015;
     }
 
-    // 15ms未満は補正不要
     if (abs < 0.015) {
       audio.playbackRate = selectedPlaybackRate.value;
       return;
     }
 
-    const adjustmentRatio = abs / 0.9; // 0.9秒を基準に割合計算
+    const adjustmentRatio = abs / 0.9;
     const rateAdjust = 1 + adjustmentRatio * maxAdjust * (diff > 0 ? 1 : -1);
-
     audio.playbackRate = selectedPlaybackRate.value * rateAdjust;
   }
 
-  function playBoth() {
+  // 再生・停止時
+  function playBoth(withJump = false) {
     if (isSyncingPlayback) return;
     isSyncingPlayback = true;
 
     Promise.all([
       video.paused ? video.play() : Promise.resolve(),
       audio.paused ? audio.play() : Promise.resolve(),
-    ]).finally(() => {
-      isSyncingPlayback = false;
-    });
+    ])
+      .then(() => {
+        if (withJump) jumpAudioToVideo();
+      })
+      .finally(() => {
+        isSyncingPlayback = false;
+      });
   }
 
   function pauseBoth() {
@@ -346,8 +372,8 @@ function setupSyncPlayback() {
   video.removeEventListener("pause", pauseBoth);
   audio.removeEventListener("pause", pauseBoth);
 
-  video.addEventListener("play", playBoth);
-  audio.addEventListener("play", playBoth);
+  video.addEventListener("play", () => playBoth(true));
+  audio.addEventListener("play", () => playBoth(true));
   video.addEventListener("pause", pauseBoth);
   audio.addEventListener("pause", pauseBoth);
 
@@ -366,6 +392,7 @@ function setupSyncPlayback() {
     }
   });
 
+  // 再生開始
   video.onplay = () => {
     video.playbackRate = selectedPlaybackRate.value;
     audio.playbackRate = selectedPlaybackRate.value;
@@ -387,15 +414,13 @@ function setupSyncPlayback() {
     if (!video.paused && !audio.paused) {
       const diff = video.currentTime - audio.currentTime;
       diffText.value = `${(diff * 1000).toFixed(0)} ms`;
-
-      if (!safariMode) {
-        correctPlaybackRate(diff);
-      }
+      correctPlaybackRate(diff);
     }
     requestAnimationFrame(syncLoop);
   }
   requestAnimationFrame(syncLoop);
 
+  // 倍速
   video.playbackRate = selectedPlaybackRate.value;
   audio.playbackRate = selectedPlaybackRate.value;
 }
