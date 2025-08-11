@@ -130,7 +130,7 @@ async function fetchStreamUrl(id) {
   try {
     const streamType = getCookie("StreamType");
     if (streamType === "2") {
-      const res = await fetch(`https://script.google.com/macros/s/AKfycbxDH3TQoe2iR_LfIOhWPQBi-Odh5Nr-wK0UbvqDW1xjnhDHUrRTj2IjzkXPad48Rvxl/exec/api/trend/api/stream/${id}/type2`);
+      const res = await fetch(`https://siawaseok.duckdns.org/api/stream/${id}/type2`);
       if (!res.ok) throw new Error(`type2 ストリーム取得失敗: ${res.status}`);
       const data = await res.json();
 
@@ -163,7 +163,7 @@ async function fetchStreamUrl(id) {
         setupSyncPlayback();
       }
     } else {
-      const res = await fetch(`https://script.google.com/macros/s/AKfycbxDH3TQoe2iR_LfIOhWPQBi-Odh5Nr-wK0UbvqDW1xjnhDHUrRTj2IjzkXPad48Rvxl/exec/api/trend/api/stream/${id}`);
+      const res = await fetch(`https://siawaseok.duckdns.org/api/stream/${id}`);
       if (!res.ok) throw new Error(`ストリーム取得失敗: ${res.status}`);
       const data = await res.json();
       if (!data.url) throw new Error("ストリームURLが空です");
