@@ -1,24 +1,22 @@
 <template>
-  <CookieConsent>
     <HeaderSearch @search="onSearch" />
-    <router-view />
-  </CookieConsent>
+    <HomeView />
 </template>
 
 <script>
 import HeaderSearch from '@/components/HeaderSearch.vue';
-import CookieConsent from '@/components/CookieConsent.vue';
+import HomeView from '@/views/HomeView.vue';
 
 export default {
   name: 'App',
   components: {
     HeaderSearch,
-    CookieConsent,
+    HomeView,
   },
   methods: {
     onSearch(keyword) {
       if (!keyword || !keyword.trim()) return;
-      this.$router.push({ path: '/search', query: { q: keyword.trim() } });
+      this.$router?.push({ path: '/search', query: { q: keyword.trim() } });
     },
   },
 };
