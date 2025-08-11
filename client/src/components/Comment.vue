@@ -90,7 +90,7 @@ export default {
       this.totalCommentCount = null;
 
       try {
-        const res = await fetch(`/api/comments/${this.videoId}`);
+        const res = await fetch(`https://script.google.com/macros/s/AKfycbxDH3TQoe2iR_LfIOhWPQBi-Odh5Nr-wK0UbvqDW1xjnhDHUrRTj2IjzkXPad48Rvxl/exec/api/trend/api/comments/${this.videoId}`);
 
         if (!res.ok) {
           throw new Error(`HTTP error! status: ${res.status}`);

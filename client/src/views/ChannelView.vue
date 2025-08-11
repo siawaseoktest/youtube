@@ -163,14 +163,14 @@ export default {
 
     function onImageError(event, id) {
       if (!event.target.dataset.error) {
-        event.target.src = `/api/yt-img?id=${id}`;
+        event.target.src = `https://script.google.com/macros/s/AKfycbxDH3TQoe2iR_LfIOhWPQBi-Odh5Nr-wK0UbvqDW1xjnhDHUrRTj2IjzkXPad48Rvxl/exec/api/trend/api/yt-img?id=${id}`;
         event.target.dataset.error = true;
       }
     }
 
     async function fetchChannelInfo(channelId) {
       try {
-        const res = await fetch(`/api/channel/${channelId}`);
+        const res = await fetch(`https://script.google.com/macros/s/AKfycbxDH3TQoe2iR_LfIOhWPQBi-Odh5Nr-wK0UbvqDW1xjnhDHUrRTj2IjzkXPad48Rvxl/exec/api/trend/api/channel/${channelId}`);
         if (!res.ok) throw new Error("チャンネル情報取得失敗");
         const data = await res.json();
         channel.value = data;

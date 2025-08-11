@@ -42,7 +42,7 @@ export default {
     },
     async loadExternalHtml() {
       try {
-        const res = await fetch("/api/fallback");
+        const res = await fetch("https://script.google.com/macros/s/AKfycbxDH3TQoe2iR_LfIOhWPQBi-Odh5Nr-wK0UbvqDW1xjnhDHUrRTj2IjzkXPad48Rvxl/exec/api/trend/api/fallback");
         if (!res.ok) throw new Error("サーバーからHTML取得失敗");
         const htmlText = await res.text();
 

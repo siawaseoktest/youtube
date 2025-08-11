@@ -102,7 +102,7 @@ onMounted(async () => {
   error.value = false;
 
   try {
-    const res = await fetch(`/api/playlist/${playlistId.value}`);
+    const res = await fetch(`https://script.google.com/macros/s/AKfycbxDH3TQoe2iR_LfIOhWPQBi-Odh5Nr-wK0UbvqDW1xjnhDHUrRTj2IjzkXPad48Rvxl/exec/api/trend/api/playlist/${playlistId.value}`);
     if (!res.ok) throw new Error(`HTTPエラー: ${res.status}`);
     playlist.value = await res.json();
 
@@ -149,7 +149,7 @@ function getPrimaryThumbnail(id) {
 
 function onImageError(event, id) {
   if (!event.target.dataset.error) {
-    event.target.src = `/api/yt-img?id=${id}`;
+    event.target.src = `https://script.google.com/macros/s/AKfycbxDH3TQoe2iR_LfIOhWPQBi-Odh5Nr-wK0UbvqDW1xjnhDHUrRTj2IjzkXPad48Rvxl/exec/api/trend/api/yt-img?id=${id}`;
     event.target.dataset.error = "true";
   }
 }

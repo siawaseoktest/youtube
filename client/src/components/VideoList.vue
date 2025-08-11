@@ -157,7 +157,7 @@ export default {
 
     onImageError(event, id) {
       if (!event.target.dataset.error) {
-        event.target.src = `/api/yt-img?id=${id}`;
+        event.target.src = `https://script.google.com/macros/s/AKfycbxDH3TQoe2iR_LfIOhWPQBi-Odh5Nr-wK0UbvqDW1xjnhDHUrRTj2IjzkXPad48Rvxl/exec/api/trend/api/yt-img?id=${id}`;
         event.target.dataset.error = true;
       }
     },
