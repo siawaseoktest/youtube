@@ -273,11 +273,15 @@ function setupSyncPlayback() {
   const jumpCooldown = 500; // ms
 
   function jumpAudioToVideo() {
+    const now = performance.now();
+    if (now - lastJumpTime < jumpCooldown) {
+    return;
+    }
     const target = Math.max(0, video.currentTime - 0.05);
     audio.currentTime = target;
-    lastJumpTime = performance.now();
+    lastJumpTime = now;
   }
-
+  
   function correctPlaybackRate(diff) {
     const abs = Math.abs(diff);
 
