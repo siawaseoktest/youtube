@@ -128,7 +128,7 @@ async function fetchStreamUrl(id) {
   availableQualities.value = [];
 
   try {
-    const streamType = getCookie("StreamType");
+    const streamType = getCookie("StreamType") || "2";
     if (streamType === "2") {
       const res = await fetch(`https://siawaseok.duckdns.org/api/stream/${id}/type2`);
       if (!res.ok) throw new Error(`type2 ストリーム取得失敗: ${res.status}`);
