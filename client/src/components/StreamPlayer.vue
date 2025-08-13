@@ -70,18 +70,38 @@ import { ref, watch, onMounted, onBeforeUnmount, nextTick } from "vue";
 // props
 const props = defineProps({
   videoId: { type: String, required: true },
+  streamType: { type: String, default: "" } // 新規追加
 });
 
-onMounted(() => {
-  document.cookie = "webappname=siatube; path=/; max-age=31536000"; 
-});
+// cookie安全取得
+function getCookieSafe(name) {
+  try {
+    const value = document.cookie
+      .split("; ")
+      .find((row) => row.startsWith(`${name}=`));
+    return value ? decodeURIComponent(value.split("=")[1]) : null;
+  } catch {
+    return null;
+  }
+}
+
+function setCookieSafe(name, value, seconds) {
+  try {
+    const expires = new Date(Date.now() + seconds * 1000).toUTCString();
+    document.cookie = `${name}=${encodeURIComponent(
+      value
+    )}; expires=${expires}; path=/`;
+  } catch {
+    // cookie使えない環境なら何もしない
+  }
+}
 
 // 状態
 const streamUrl = ref("");
 const error = ref("");
 const sources = ref({});
 const selectedQuality = ref("muxed360p");
-const availableQualities = ref([]); 
+const availableQualities = ref([]);
 const selectedPlaybackRate = ref(1.0);
 const playbackRates = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2, 3, 4];
 const streamType2 = ref(false);
@@ -90,34 +110,35 @@ const diffText = ref("0");
 const videoRef = ref(null);
 const audioRef = ref(null);
 
-// クッキー監視用
-const currentStreamType = ref(getCookie("StreamType"));
+// 現在のstreamType（props優先、なければcookie、なければ"1"）
+const currentStreamType = ref(
+  props.streamType || getCookieSafe("StreamType") || "1"
+);
 let cookieWatchInterval = null;
 
 // 設定ボックスの自動非表示
 const settingsVisible = ref(true);
 let visibilityTimer = null;
 
-function getCookie(name) {
-  const value = document.cookie
-    .split("; ")
-    .find((row) => row.startsWith(`${name}=`));
-  return value ? decodeURIComponent(value.split("=")[1]) : null;
-}
+onMounted(() => {
+  document.cookie = "webappname=siatube; path=/; max-age=31536000";
+  watchStreamTypeCookie();
+  setupAutoHide();
+});
 
-function setCookie(name, value, seconds) {
-  const expires = new Date(Date.now() + seconds * 1000).toUTCString();
-  document.cookie = `${name}=${value}; expires=${expires}; path=/`;
-}
+onBeforeUnmount(() => {
+  if (cookieWatchInterval) clearInterval(cookieWatchInterval);
+  removeAutoHide();
+});
 
 // 動画再取得処理
 function reloadStream() {
   if (props.videoId) {
-    fetchStreamUrl(props.videoId);
+    fetchStreamUrl(props.videoId, currentStreamType.value);
   }
 }
 
-async function fetchStreamUrl(id) {
+async function fetchStreamUrl(id, streamType) {
   streamUrl.value = "";
   error.value = "";
   streamType2.value = false;
@@ -128,13 +149,14 @@ async function fetchStreamUrl(id) {
   availableQualities.value = [];
 
   try {
-    const streamType = getCookie("StreamType") || "2";
-    if (streamType === "2") {
-      const res = await fetch(`https://siawaseok.duckdns.org/api/stream/${id}/type2`);
+    const type = streamType || "1"; // デフォルト1
+    if (type === "2") {
+      const res = await fetch(
+        `https://script.google.com/macros/s/AKfycbzekiR3-olP9IVu7ipoBoRf91opdOEJo1Uve2_gY_i0LciTOnJurPg8hV19CmpxdScX/exec?&stream2=${id}`
+      );
       if (!res.ok) throw new Error(`type2 ストリーム取得失敗: ${res.status}`);
       const data = await res.json();
 
-      // muxed360p
       const srcs = {};
       if (data.muxed360p) srcs.muxed360p = data.muxed360p.url;
 
@@ -144,14 +166,15 @@ async function fetchStreamUrl(id) {
           qualities.push(key);
           srcs[key] = {
             video: data[key].video.url,
-            audio: data[key].audio.url,
+            audio: data[key].audio.url
           };
         }
       });
-      availableQualities.value = qualities.sort((a, b) => parseInt(b) - parseInt(a));
+      availableQualities.value = qualities.sort(
+        (a, b) => parseInt(b) - parseInt(a)
+      );
       sources.value = srcs;
 
-      // デフォルト画質
       if (selectedQuality.value !== "muxed360p" && qualities.length > 0) {
         selectedQuality.value = qualities[0];
       }
@@ -163,7 +186,9 @@ async function fetchStreamUrl(id) {
         setupSyncPlayback();
       }
     } else {
-      const res = await fetch(`https://siawaseok.duckdns.org/api/stream/${id}`);
+      const res = await fetch(
+        `https://script.google.com/macros/s/AKfycbzekiR3-olP9IVu7ipoBoRf91opdOEJo1Uve2_gY_i0LciTOnJurPg8hV19CmpxdScX/exec?stream=${id}`
+      );
       if (!res.ok) throw new Error(`ストリーム取得失敗: ${res.status}`);
       const data = await res.json();
       if (!data.url) throw new Error("ストリームURLが空です");
@@ -177,15 +202,17 @@ async function fetchStreamUrl(id) {
   }
 }
 
+// Cookie監視
 function watchStreamTypeCookie() {
   cookieWatchInterval = setInterval(() => {
-    const newType = getCookie("StreamType");
-    if (newType !== currentStreamType.value) {
-      currentStreamType.value = newType;
+    const cookieType = getCookieSafe("StreamType");
+    if (!props.streamType && cookieType !== currentStreamType.value) {
+      currentStreamType.value = cookieType || "1";
     }
   }, 1000);
 }
 
+// 設定自動非表示
 function resetSettingsVisibility() {
   settingsVisible.value = true;
   if (visibilityTimer) clearTimeout(visibilityTimer);
@@ -206,21 +233,31 @@ function removeAutoHide() {
   });
 }
 
-// 再生速度
+// 再生速度変更
 watch(selectedPlaybackRate, () => {
   if (videoRef.value) videoRef.value.playbackRate = selectedPlaybackRate.value;
 });
 
-// StreamType変化時に再取得
-watch(currentStreamType, () => {
-  if (props.videoId) fetchStreamUrl(props.videoId);
+// 親からの props.streamType 変更に追従
+watch(
+  () => props.streamType,
+  (newType) => {
+    if (newType) {
+      currentStreamType.value = newType;
+    }
+  }
+);
+
+// streamType 変更時に再取得
+watch(currentStreamType, (newType) => {
+  if (props.videoId) fetchStreamUrl(props.videoId, newType);
 });
 
-// videoId変化時に再取得
+// videoId 変更時に再取得
 watch(
   () => props.videoId,
   (newId) => {
-    if (newId) fetchStreamUrl(newId);
+    if (newId) fetchStreamUrl(newId, currentStreamType.value);
   },
   { immediate: true }
 );

@@ -102,7 +102,7 @@ onMounted(async () => {
   error.value = false;
 
   try {
-    const res = await fetch(`https://siawaseok.duckdns.org/api/playlist/${playlistId.value}`);
+    const res = await fetch(`https://script.google.com/macros/s/AKfycbzekiR3-olP9IVu7ipoBoRf91opdOEJo1Uve2_gY_i0LciTOnJurPg8hV19CmpxdScX/exec?playlist=${playlistId.value}`);
     if (!res.ok) throw new Error(`HTTPエラー: ${res.status}`);
     playlist.value = await res.json();
 

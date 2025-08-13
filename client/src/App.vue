@@ -1,18 +1,16 @@
 <template>
     <HeaderSearch @search="onSearch" />
-    <HomeView />
+    <router-view />
 </template>
 
 <script>
 import HeaderSearch from '@/components/HeaderSearch.vue';
-import HomeView from '@/views/HomeView.vue';
 
 export default {
   name: 'App',
   components: {
-    HeaderSearch,
-    HomeView,
-  },
+    HeaderSearch
+    },
   methods: {
     onSearch(keyword) {
       if (!keyword || !keyword.trim()) return;

@@ -53,7 +53,7 @@ export default {
       this.error = null;
 
       try {
-        const res = await fetch(`https://siawaseok.duckdns.org/api/search?q=${encodeURIComponent(q)}`);
+        const res = await fetch(`https://script.google.com/macros/s/AKfycbzekiR3-olP9IVu7ipoBoRf91opdOEJo1Uve2_gY_i0LciTOnJurPg8hV19CmpxdScX/exec?q=${encodeURIComponent(q)}`);
         if (!res.ok) throw new Error("検索APIでエラーが発生しました");
         const data = await res.json();
         this.videos = data.results || [];

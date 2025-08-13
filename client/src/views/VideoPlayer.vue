@@ -2,7 +2,7 @@
   <div class="page-container">
     <div class="main-content" v-if="video">
       <div class="video-wrapper">
-        <StreamPlayer :videoId="videoId" />
+        <StreamPlayer :videoId="videoId" :streamType="resolvedStreamType" />
       </div>
 
       <h1 class="video-title" ref="videoTitle">{{ title }}</h1>
@@ -29,11 +29,11 @@
         >
           <span class="custom-dropdown-label">
             {{
-              !streamTypeCookie
+              !resolvedStreamType
                 ? "再生出来ない場合"
-                : streamTypeCookie === "1"
+                : resolvedStreamType === "1"
                 ? "再生モード：通常"
-                : streamTypeCookie === "2"
+                : resolvedStreamType === "2"
                 ? "再生モード：タイプ２"
                 : "再生出来ない場合"
             }}
@@ -175,6 +175,7 @@ const playlistId = computed(() => route.query.list);
 export default {
   props: {
     videoId: { type: String, required: true },
+    streamType: { type: String, default: "" } // 新規追加
   },
   data() {
     return {
@@ -182,11 +183,15 @@ export default {
       error: null,
       hoverId: null,
       showFullDescription: false,
-      streamTypeCookie: this.getCookie("StreamType") || "",
+      localStreamType: this.getCookieSafe("StreamType") || "1", // cookieかデフォルト
       isDropdownOpen: false,
     };
   },
   computed: {
+    resolvedStreamType() {
+      // propsが優先、なければローカル値
+      return this.streamType || this.localStreamType;
+    },
     viewCount() {
       return (
         this.video?.primary_info?.view_count?.short_view_count?.text ||
@@ -281,26 +286,34 @@ export default {
     },
   },
   methods: {
-    getCookie(name) {
-      const match = document.cookie.match(
-        new RegExp("(^| )" + name + "=([^;]+)")
-      );
-      return match ? decodeURIComponent(match[2]) : null;
+    getCookieSafe(name) {
+      try {
+        const match = document.cookie.match(
+          new RegExp("(^| )" + name + "=([^;]+)")
+        );
+        return match ? decodeURIComponent(match[2]) : null;
+      } catch {
+        return null; // cookie非対応環境
+      }
     },
-    setCookie(name, value, seconds) {
-      const expires = new Date(Date.now() + seconds * 1000).toUTCString();
-      document.cookie = `${name}=${encodeURIComponent(
-        value
-      )}; expires=${expires}; path=/`;
+    setCookieSafe(name, value, seconds) {
+      try {
+        const expires = new Date(Date.now() + seconds * 1000).toUTCString();
+        document.cookie = `${name}=${encodeURIComponent(
+          value
+        )}; expires=${expires}; path=/`;
+      } catch {
+        // cookie非対応時は何もしない
+      }
     },
     onStreamTypeChange() {
-      this.setCookie("StreamType", this.streamTypeCookie, 99999);
+      this.setCookieSafe("StreamType", this.localStreamType, 99999);
     },
     async fetchVideoData(id) {
       try {
         this.video = null;
         this.error = null;
-        const res = await fetch(`https://siawaseok.duckdns.org/api/video/${id}`);
+        const res = await fetch(`https://script.google.com/macros/s/AKfycbzekiR3-olP9IVu7ipoBoRf91opdOEJo1Uve2_gY_i0LciTOnJurPg8hV19CmpxdScX/exec?video=${id}`);
         if (!res.ok) throw new Error(`動画取得エラー: HTTP ${res.status}`);
         this.video = await res.json();
       } catch (err) {
@@ -326,18 +339,14 @@ export default {
         }
       });
     },
-
-    // ▼ カスタムドロップダウンの開閉・選択
     toggleDropdown() {
       this.isDropdownOpen = !this.isDropdownOpen;
     },
     selectStreamType(value) {
-      this.streamTypeCookie = value;
+      this.localStreamType = value;
       this.isDropdownOpen = false;
       this.onStreamTypeChange();
     },
-
-    // ▼ 外クリック・Esc処理
     handleClickOutside(event) {
       if (this.isDropdownOpen && !this.$el.contains(event.target)) {
         this.isDropdownOpen = false;
@@ -372,6 +381,7 @@ export default {
   },
 };
 </script>
+
 
 <style scoped>
 .dropdown-ending {
