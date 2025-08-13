@@ -163,7 +163,7 @@ export default {
 
     function onImageError(event, id) {
       if (!event.target.dataset.error) {
-        event.target.src = `https://siawaseok.duckdns.org/api/yt-img?id=${id}`;
+        event.target.src = `https://i.ytimg.com/vi/${id}/sddefault.jpg`;
         event.target.dataset.error = true;
       }
     }
