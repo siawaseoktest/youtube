@@ -53,8 +53,8 @@
       <iframe
         :src="streamUrl"
         frameborder="0"
+        allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
         allowfullscreen
-        allow="autoplay; encrypted-media; picture-in-picture"
         referrerpolicy="strict-origin-when-cross-origin"
         title="動画ストリーム"
       ></iframe>
