@@ -170,7 +170,7 @@ export default {
 
     async function fetchChannelInfo(channelId) {
       try {
-        const res = await fetch(`https://script.google.com/macros/s/AKfycbzekiR3-olP9IVu7ipoBoRf91opdOEJo1Uve2_gY_i0LciTOnJurPg8hV19CmpxdScX/exec?channel=${channelId}`);
+        const res = await fetch(`https://script.google.com/macros/s/AKfycbzqpav7y2x3q756wRSOhBzaXf-2hKaLTvxoFN8kFegrIvamH03ZXphEw2PK30L7AstC/exec?channel=${channelId}`);
         if (!res.ok) throw new Error("チャンネル情報取得失敗");
         const data = await res.json();
         channel.value = data;

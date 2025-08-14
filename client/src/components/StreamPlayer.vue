@@ -152,7 +152,7 @@ async function fetchStreamUrl(id, streamType) {
     const type = streamType || "1"; // デフォルト1
     if (type === "2") {
       const res = await fetch(
-        `https://script.google.com/macros/s/AKfycbzekiR3-olP9IVu7ipoBoRf91opdOEJo1Uve2_gY_i0LciTOnJurPg8hV19CmpxdScX/exec?&stream2=${id}`
+        `https://script.google.com/macros/s/AKfycbzqpav7y2x3q756wRSOhBzaXf-2hKaLTvxoFN8kFegrIvamH03ZXphEw2PK30L7AstC/exec?&stream2=${id}`
       );
       if (!res.ok) throw new Error(`type2 ストリーム取得失敗: ${res.status}`);
       const data = await res.json();
@@ -187,7 +187,7 @@ async function fetchStreamUrl(id, streamType) {
       }
     } else {
       const res = await fetch(
-        `https://script.google.com/macros/s/AKfycbzekiR3-olP9IVu7ipoBoRf91opdOEJo1Uve2_gY_i0LciTOnJurPg8hV19CmpxdScX/exec?stream=${id}`
+        `https://script.google.com/macros/s/AKfycbzqpav7y2x3q756wRSOhBzaXf-2hKaLTvxoFN8kFegrIvamH03ZXphEw2PK30L7AstC/exec?stream=${id}`
       );
       if (!res.ok) throw new Error(`ストリーム取得失敗: ${res.status}`);
       const data = await res.json();
