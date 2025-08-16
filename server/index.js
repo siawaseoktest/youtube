@@ -38,7 +38,7 @@ app.use("/api", fallbackRoute);
 app.get("/api/trend", async (req, res) => {
   try {
     const response = await fetch(
-      "https://raw.githubusercontent.com/siawaseok3/wakame/refs/heads/master/trend.json"
+      "https://raw.githubusercontent.com/ajgpw/youtubedata/refs/heads/main/trend-base64.json"
     );
     if (!response.ok) {
       throw new Error("GitHubからの取得に失敗");

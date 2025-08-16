@@ -11,7 +11,7 @@
               :data-duration="formatDuration(video.duration)"
             >
               <img
-                :src="video.thumbnails?.medium?.url || getPrimaryThumbnail(video.id)"
+                :src="video.thumbnails?.medium?.url || video.thumbnails?.standard?.url || getPrimaryThumbnail(video.id)"
                 :alt="video.title"
                 @error="onImageError($event, video.id)"
               />
