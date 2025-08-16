@@ -58,7 +58,9 @@
 
 <script setup>
 import { ref, onMounted, onBeforeUnmount } from "vue";
+import { useRouter } from "vue-router";
 
+const router = useRouter();
 const emit = defineEmits(["search"]);
 
 const query = ref("");
@@ -77,6 +79,9 @@ const onClickOutside = (event) => {
 
 onMounted(() => {
   document.addEventListener("click", onClickOutside);
+
+  // ページ読み込み時に自動でホームに移動
+  router.push('/');
 });
 
 onBeforeUnmount(() => {
@@ -145,12 +150,12 @@ const submitSearch = () => {
 const onSubmit = () => {
   submitSearch();
 };
+
 const clearQuery = () => {
   query.value = "";
   suggestions.value = [];
   selectedIndex.value = -1;
 };
-
 </script>
 
 <style scoped>
