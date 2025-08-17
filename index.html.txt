@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>数学をできるに！</title>
+    <style>
+    body {
+      font-family: "ヒラギノ角ゴ ProN", "Hiragino Kaku Gothic ProN",
+                   "メイリオ", Meiryo,
+                   "ＭＳ ゴシック", "MS Gothic",
+                   sans-serif;
+    }
+    </style>
+    <script type="module" crossorigin src="https://cdn.jsdelivr.net/gh/ajgpw/youtube@main/client/dist/assets/index-CEVR2KWp.js"></script>
+    <link rel="stylesheet" crossorigin href="https://cdn.jsdelivr.net/gh/ajgpw/youtube@main/client/dist/assets/index-DIGJXjXM.css">
+  </head>
+  <body>
+    <div id="app"></div>
+    
+    <noscript>
+      <h1>JavaScriptが無効です</h1>
+      <p>
+        この学習向けサイトはJavaScriptを必要とします。
+        お使いのブラウザでJavaScriptを有効にしてください。
+      </p>
+    </noscript>
+
+  </body>
+</html>
