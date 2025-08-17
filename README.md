@@ -21,7 +21,7 @@
 ## 3. Google Apps Script で展開
 1. https://script.google.com/ にアクセス
 2. 新しいプロジェクトを作成
-3. 以下の `Code.gs` を追加
+3.  `コード.gs` を以下に書き換える
 
 ```javascript
 // Code.gs
@@ -31,14 +31,14 @@ function doGet(e) {
     .setTitle('siatube')
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }
-
+```
 	4.	変換済みHTMLを index.html として追加
 	•	メニュー → 「新規作成」 → 「HTMLファイル」 → 名前を index にする
 	•	中身にコピーしたHTMLを貼り付ける
 
 ⸻
 
-4. Webアプリとしてデプロイ
+## 4. Webアプリとしてデプロイ
 	•	メニュー → 「デプロイ」 → 「新しいデプロイ」
 	•	「種類を選択」 → 「Webアプリ」
 	•	「アクセスできるユーザー」 → 「全員（匿名ユーザー含む）」に設定
