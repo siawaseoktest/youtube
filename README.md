@@ -1,17 +1,7 @@
-# youtube代替サイト
-開発中です
-
-はじめにフォークしてからやってください
-[https://github.com/siawaseoktest/youtube/fork](https://github.com/siawaseoktest/youtube/fork)
-
+# しあtube静的デプロイ用
 
 ### ビルドコマンド
 ```bash
 npm install
 ````
-
-### スタートコマンド
-
-```bash
-npm start
-```
+ビルドコマンド実行後に生成されたdistファイルを使ってください
