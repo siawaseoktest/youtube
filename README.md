@@ -7,7 +7,6 @@
 
 👉 https://github.com/ajgpw/youtube/tree/main/client/dist/index.html
 
----
 
 ## 2. HTML の変換
 コピーしたHTMLを、以下のページに貼り付けて変換します。
@@ -16,7 +15,6 @@
 
 変換後のHTMLをコピーしてください。
 
----
 
 ## 3. Google Apps Script で展開
 1. https://script.google.com/ にアクセス
@@ -32,18 +30,13 @@ function doGet(e) {
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }
 ```
-# 4.	変換済みHTMLを index.html として追加
+## 4.	変換済みHTMLを index.html として追加
 	•	メニュー → 「新規作成」 → 「HTMLファイル」 → 名前を index にする
 	•	中身にコピーしたHTMLを貼り付ける
 
-⸻
-
-## 4. Webアプリとしてデプロイ
+## 5. Webアプリとしてデプロイ
 	•	メニュー → 「デプロイ」 → 「新しいデプロイ」
 	•	「種類を選択」 → 「Webアプリ」
 	•	「アクセスできるユーザー」 → 「全員（匿名ユーザー含む）」に設定
 	•	デプロイ → 公開URLが発行される
 
-⸻
-
-✅ これで sites.google.com や github.io と同じようにWebアプリとして公開可能です。
