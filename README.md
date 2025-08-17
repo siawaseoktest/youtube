@@ -32,7 +32,7 @@ function doGet(e) {
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }
 ```
-	4.	変換済みHTMLを index.html として追加
+# 4.	変換済みHTMLを index.html として追加
 	•	メニュー → 「新規作成」 → 「HTMLファイル」 → 名前を index にする
 	•	中身にコピーしたHTMLを貼り付ける
 
