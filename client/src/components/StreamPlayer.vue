@@ -367,7 +367,7 @@ function setupSyncPlayback() {
     let maxAdjust;
     if (abs >= 0.8) {
       maxAdjust = 0.85;
-    } else if (abs >= 0.2) {
+    } else if (abs >= 0.1) {
       maxAdjust = 0.75;
     } else {
       maxAdjust = 0.015;

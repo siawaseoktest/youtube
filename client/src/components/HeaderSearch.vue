@@ -79,8 +79,6 @@ const onClickOutside = (event) => {
 
 onMounted(() => {
   document.addEventListener("click", onClickOutside);
-
-  // ページ読み込み時に自動でホームに移動
   router.push('/');
 });
 
@@ -99,7 +97,7 @@ const fetchSuggestions = async (keyword) => {
 
   try {
     const res = await fetch(
-      `https://siawaseok.duckdns.org/api/suggest?keyword=${encodeURIComponent(keyword)}`,
+      `/api/suggest?keyword=${encodeURIComponent(keyword)}`,
       { signal: fetchController.signal }
     );
     if (!res.ok) throw new Error("Network error");
