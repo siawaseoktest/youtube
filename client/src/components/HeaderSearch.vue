@@ -97,7 +97,7 @@ const fetchSuggestions = async (keyword) => {
 
   try {
     const res = await fetch(
-      `/api/suggest?keyword=${encodeURIComponent(keyword)}`,
+      `?suggest&keyword=${encodeURIComponent(keyword)}`,
       { signal: fetchController.signal }
     );
     if (!res.ok) throw new Error("Network error");
