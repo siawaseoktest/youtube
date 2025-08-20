@@ -136,9 +136,8 @@
               <span class="video-title-related" :title="r.title">{{ r.title }}</span>
               <div class="video-metadata">
                 <div class="one-line re-actername">{{ r.metadataRow1 }}</div>
-                <span v-if="r.metadataRow2Part1 !== '本日更新'">{{ r.metadataRow2Part1 === '再生リストの全体を見る' ? '再生リスト' : r.metadataRow2Part1 }}</span>
-                <span v-if="r.metadataRow2Part2" class="dot">・</span>
-                {{ r.metadataRow2Part2 }}
+                <span v-if="r.metadataRow2Part1 && r.metadataRow2Part1.replace(/\s+/g, '') !== '本日更新'">{{ r.metadataRow2Part1.replace(/\s+/g, '') === '再生リストの全体を見る' ? '再生リスト' : r.metadataRow2Part1.replace(/\s+/g, '') }}</span>
+                <span v-if="r.metadataRow2Part2 && r.metadataRow2Part2.replace(/\s+/g, '')" class="dot">・</span>{{ r.metadataRow2Part2 ? r.metadataRow2Part2.replace(/\s+/g, '') : '' }}
               </div>
             </div>
           </router-link>
@@ -170,7 +169,7 @@ import { API_URL } from "@/api";
 export default {
   props: {
     videoId: { type: String, required: true },
-    streamType: { type: String, default: "" } // 新規追加
+    streamType: { type: String, default: "" } 
   },
   data() {
     return {
@@ -405,6 +404,7 @@ export default {
 
 .re-actername{
   margin-bottom: 3px;
+  font-size: 0.8rem;
 }
 
 .custom-dropdown-menu {
@@ -569,7 +569,7 @@ p {
 }
 
 .related-title {
-  font-size: 1.1rem;
+  font-size: 1.4rem;
   font-weight: 500;
   margin-bottom: 12px;
 }
@@ -627,7 +627,7 @@ p {
 }
 
 .video-title-related {
-  font-size: 0.9rem;
+  font-size: 1rem;
   font-weight: 500;
   line-height: 1.3;
   color: #030303;

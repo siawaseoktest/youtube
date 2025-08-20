@@ -1,6 +1,10 @@
 <template>
   <div class="video-wrapper">
-    <div v-if="error">{{ error }}</div>
+    <!-- エラー表示 -->
+    <div v-if="error" class="error-box">
+      ⚠️ {{ error }}
+      <button @click="reloadStream" class="reload-button">再取得</button>
+    </div>
 
     <!-- StreamType=2 -->
     <div
@@ -60,7 +64,8 @@
       ></iframe>
     </div>
 
-    <div style="height: 500px" v-else>読み込み中...</div>
+    <!-- 読み込み中 -->
+    <div v-else-if="loading" style="height: 500px">読み込み中...</div>
   </div>
 </template>
 
@@ -71,7 +76,7 @@ import { API_URL } from "@/api";
 // props
 const props = defineProps({
   videoId: { type: String, required: true },
-  streamType: { type: String, default: "" } // 新規追加
+  streamType: { type: String, default: "" }
 });
 
 // cookie安全取得
@@ -121,6 +126,8 @@ let cookieWatchInterval = null;
 const settingsVisible = ref(true);
 let visibilityTimer = null;
 
+const loading = ref(false);
+
 onMounted(() => {
   document.cookie = "webappname=siatube; path=/; max-age=31536000";
   watchStreamTypeCookie();
@@ -148,12 +155,12 @@ async function fetchStreamUrl(id, streamType) {
   selectedPlaybackRate.value = 1.0;
   diffText.value = "0";
   availableQualities.value = [];
-
+  loading.value = true;
   try {
     const type = streamType || "1"; // デフォルト1
     if (type === "2") {
       const res = await fetch(
-        `https://script.google.com/macros/s/AKfycbzqpav7y2x3q756wRSOhBzaXf-2hKaLTvxoFN8kFegrIvamH03ZXphEw2PK30L7AstC/exec?&stream2=${id}`
+        `${API_URL}?&stream2=${id}`
       );
       if (!res.ok) throw new Error(`type2 ストリーム取得失敗: ${res.status}`);
       const data = await res.json();
@@ -200,6 +207,8 @@ async function fetchStreamUrl(id, streamType) {
   } catch (err) {
     console.error("取得エラー:", err);
     error.value = "ストリームURLの取得に失敗しました。";
+  } finally {
+    loading.value = false;
   }
 }
 
