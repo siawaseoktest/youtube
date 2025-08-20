@@ -66,6 +66,7 @@
 
 <script setup>
 import { ref, watch, onMounted, onBeforeUnmount, nextTick } from "vue";
+import { API_URL } from "@/api";
 
 // props
 const props = defineProps({
@@ -187,7 +188,7 @@ async function fetchStreamUrl(id, streamType) {
       }
     } else {
       const res = await fetch(
-        `https://script.google.com/macros/s/AKfycbzqpav7y2x3q756wRSOhBzaXf-2hKaLTvxoFN8kFegrIvamH03ZXphEw2PK30L7AstC/exec?stream=${id}`
+        `${API_URL}?stream=${id}`
       );
       if (!res.ok) throw new Error(`ストリーム取得失敗: ${res.status}`);
       const data = await res.json();

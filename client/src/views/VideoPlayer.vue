@@ -165,6 +165,8 @@ const playlistId = computed(() => route.query.list);
 </script>
 
 <script>
+import { API_URL } from "@/api";
+
 export default {
   props: {
     videoId: { type: String, required: true },
@@ -302,7 +304,7 @@ export default {
       try {
         this.video = null;
         this.error = null;
-        const res = await fetch(`https://script.google.com/macros/s/AKfycbzqpav7y2x3q756wRSOhBzaXf-2hKaLTvxoFN8kFegrIvamH03ZXphEw2PK30L7AstC/exec?video=${id}`);
+        const res = await fetch(`${API_URL}?video=${id}`);
         if (!res.ok) throw new Error(`動画取得エラー: HTTP ${res.status}`);
         this.video = await res.json();
       } catch (err) {

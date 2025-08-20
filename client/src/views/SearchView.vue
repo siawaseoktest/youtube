@@ -17,6 +17,7 @@
 
 <script>
 import VideoList from "@/components/VideoList.vue";
+import { API_URL } from "@/api";
 
 export default {
   components: { VideoList },
@@ -53,7 +54,7 @@ export default {
       this.error = null;
 
       try {
-        const res = await fetch(`https://script.google.com/macros/s/AKfycbzqpav7y2x3q756wRSOhBzaXf-2hKaLTvxoFN8kFegrIvamH03ZXphEw2PK30L7AstC/exec?q=${encodeURIComponent(q)}`);
+        const res = await fetch(`${API_URL}?q=${encodeURIComponent(q)}`);
         if (!res.ok) throw new Error("検索APIでエラーが発生しました");
         const data = await res.json();
         this.videos = data.results || [];

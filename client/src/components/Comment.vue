@@ -50,6 +50,8 @@
   </section>
 </template>
 <script>
+import { API_URL } from "@/api";
+
 export default {
   name: "Comment",
   props: {
@@ -90,7 +92,7 @@ export default {
       this.totalCommentCount = null;
 
       try {
-        const res = await fetch(`https://script.google.com/macros/s/AKfycbzekiR3-olP9IVu7ipoBoRf91opdOEJo1Uve2_gY_i0LciTOnJurPg8hV19CmpxdScX/exec?comments=${this.videoId}`);
+        const res = await fetch(`${API_URL}?comments=${this.videoId}`);
 
         if (!res.ok) {
           throw new Error(`HTTP error! status: ${res.status}`);
