@@ -2,7 +2,11 @@
   <section class="comments-section">
     <h2 v-if="totalCommentCount !== null">{{ totalCommentCount }}</h2>
 
-    <ul v-if="comments.length > 0" class="comment-list">
+    <!-- ローディング表示 -->
+    <p v-if="loading">コメントを読み込み中...</p>
+
+    <!-- コメントリスト -->
+    <ul v-else-if="comments.length > 0" class="comment-list">
       <li v-for="(c, i) in comments" :key="c.id || i" class="comment-item">
         <img
           v-if="c.authorIcon"
@@ -49,6 +53,7 @@
     <p v-if="error" class="error-msg">⚠️ {{ error }}</p>
   </section>
 </template>
+
 <script>
 import { API_URL } from "@/api";
 
@@ -65,6 +70,7 @@ export default {
       comments: [],
       totalCommentCount: null,
       error: null,
+      loading: false,
     };
   },
   watch: {
@@ -90,6 +96,7 @@ export default {
       this.error = null;
       this.comments = [];
       this.totalCommentCount = null;
+      this.loading = true;
 
       try {
         const res = await fetch(`${API_URL}?comments=${this.videoId}`);
@@ -119,6 +126,8 @@ export default {
       } catch (err) {
         console.error("コメント取得エラー:", err);
         this.error = "コメントを読み込めませんでした。";
+      } finally {
+        this.loading = false;
       }
     },
 

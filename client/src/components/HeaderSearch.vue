@@ -97,7 +97,7 @@ const fetchSuggestions = async (keyword) => {
 
   try {
     const res = await fetch(
-      `?suggest&keyword=${encodeURIComponent(keyword)}`,
+      `https://www.google.com/complete/search?client=youtube&hl=ja&ds=yt&q=${encodeURIComponent(keyword)}`,
       { signal: fetchController.signal }
     );
     if (!res.ok) throw new Error("Network error");
