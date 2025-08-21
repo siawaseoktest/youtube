@@ -68,6 +68,11 @@
           >・<span>高評価数{{ likeCount }}</span>
           <span class="dot">　</span>
           <span>{{ relativeDate }}</span>
+          <div>
+            <StreamPlayer v-if="currentType === '1'" :videoId="videoId" :streamType="'1'" style="display:none;" />
+            <StreamPlayer v-if="currentType === '3'" :videoId="videoId" :streamType="'3'" />
+            <button @click="switchStream">この動画をダウンロードする</button>
+          </div>
         </div>
         <div class="video-description">
           <div v-if="!showFullDescription" class="description-preview">
@@ -153,6 +158,7 @@
 <script setup>
 import { computed } from "vue";
 import { useRoute } from "vue-router";
+import { ref } from 'vue';
 import PlaylistComponent from "@/components/Playlist.vue";
 import Comment from "@/components/Comment.vue";
 import StreamPlayer from "@/components/StreamPlayer.vue";
@@ -161,6 +167,12 @@ window.scrollTo(0, 0);
 const route = useRoute();
 const videoId = computed(() => route.query.v);
 const playlistId = computed(() => route.query.list);
+
+const currentType = ref('1');
+
+function switchStream() {
+  currentType.value = '3';
+}
 </script>
 
 <script>

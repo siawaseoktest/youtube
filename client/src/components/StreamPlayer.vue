@@ -6,6 +6,13 @@
       <button @click="reloadStream" class="reload-button">再取得</button>
     </div>
 
+    <!-- StreamType=3 -->
+    <div v-else-if="streamType === '3' && streamUrl">
+      <a :href="streamUrl" target="_blank" rel="noopener noreferrer">
+        ダウンロード
+      </a>
+    </div>
+
     <!-- StreamType=2 -->
     <div
       v-else-if="
@@ -53,6 +60,7 @@
     </div>
 
     <!-- iframeモード -->
+    <!-- StreamType=1 -->
     <div v-else-if="streamUrl" class="video-container">
       <iframe
         :src="streamUrl"
@@ -65,7 +73,7 @@
     </div>
 
     <!-- 読み込み中 -->
-    <div v-else-if="loading" style="height: 500px">読み込み中...</div>
+    <div v-else-if="loading">読み込み中...</div>
   </div>
 </template>
 
@@ -116,9 +124,9 @@ const diffText = ref("0");
 const videoRef = ref(null);
 const audioRef = ref(null);
 
-// 現在のstreamType（props優先、なければcookie、なければ"1"）
+// 現在のstreamType（props優先、なければcookie、なければ"2"）
 const currentStreamType = ref(
-  props.streamType || getCookieSafe("StreamType") || "1"
+  props.streamType || getCookieSafe("StreamType") || "2"
 );
 let cookieWatchInterval = null;
 
@@ -156,12 +164,13 @@ async function fetchStreamUrl(id, streamType) {
   diffText.value = "0";
   availableQualities.value = [];
   loading.value = true;
+
   try {
-    const type = streamType || "1"; // デフォルト1
-    if (type === "2") {
-      const res = await fetch(
-        `${API_URL}?&stream2=${id}`
-      );
+    const Type = streamType || "1";
+
+    if (Type === "2") {
+      // Type2 ストリーム取得
+      const res = await fetch(`${API_URL}?&stream2=${id}`);
       if (!res.ok) throw new Error(`type2 ストリーム取得失敗: ${res.status}`);
       const data = await res.json();
 
@@ -178,9 +187,8 @@ async function fetchStreamUrl(id, streamType) {
           };
         }
       });
-      availableQualities.value = qualities.sort(
-        (a, b) => parseInt(b) - parseInt(a)
-      );
+
+      availableQualities.value = qualities.sort((a, b) => parseInt(b) - parseInt(a));
       sources.value = srcs;
 
       if (selectedQuality.value !== "muxed360p" && qualities.length > 0) {
@@ -193,10 +201,33 @@ async function fetchStreamUrl(id, streamType) {
       if (selectedQuality.value !== "muxed360p") {
         setupSyncPlayback();
       }
+
+    } else if (Type === "3") {
+      // Type3: muxed360p 全画面
+      // Type2 で取得済みがあればそれを使う
+      if (sources.value.muxed360p) {
+        streamUrl.value = sources.value.muxed360p;
+      } else {
+        const res = await fetch(`${API_URL}?stream2=${id}`);
+        if (!res.ok) throw new Error(`type3 ストリーム取得失敗: ${res.status}`);
+        const data = await res.json();
+        if (!data.muxed360p) throw new Error("Type3: muxed360p がありません");
+        streamUrl.value = data.muxed360p.url;
+        sources.value.muxed360p = streamUrl.value;
+      }
+
+      selectedQuality.value = "muxed360p";
+      streamType2.value = false;
+
+      await nextTick();
+      if (videoRef.value) {
+        videoRef.value.requestFullscreen().catch(() => {});
+        videoRef.value.play().catch(() => {});
+      }
+
     } else {
-      const res = await fetch(
-        `${API_URL}?stream=${id}`
-      );
+      // Type1 またはその他
+      const res = await fetch(`${API_URL}?stream=${id}`);
       if (!res.ok) throw new Error(`ストリーム取得失敗: ${res.status}`);
       const data = await res.json();
       if (!data.url) throw new Error("ストリームURLが空です");
@@ -204,6 +235,7 @@ async function fetchStreamUrl(id, streamType) {
     }
 
     window.scrollTo({ top: 0, behavior: "smooth" });
+
   } catch (err) {
     console.error("取得エラー:", err);
     error.value = "ストリームURLの取得に失敗しました。";
@@ -550,4 +582,11 @@ onBeforeUnmount(() => {
 audio {
   display: none;
 }
+
+.full-screen-video video {
+  width: 100vw;
+  height: 100vh;
+  object-fit: contain; 
+}
+
 </style>
