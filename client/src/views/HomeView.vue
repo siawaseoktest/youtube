@@ -22,6 +22,13 @@
         :title="currentCategoryLabel"
       />
     </main>
+    <footer class="footer">
+      <p>しあtube</p>
+      <p>
+        <a href="https://github.com/siawaseoktest/youtube" target="_blank" rel="noopener noreferrer">GitHub</a> |
+        <a href="https://www.google.com/url?q=https%3A%2F%2Fline.me%2Fti%2Fg2%2FvCj1dWEoRZTALbC0n1w53si3-KJ8OTXnfjV6aw%3Futm_source%3Dinvitation%26utm_medium%3Dlink_copy%26utm_campaign%3Ddefault&sa=D&sntz=1&usg=AOvVaw0AaRwnxB0yifPSGZ1TbcS5" target="_blank" rel="noopener noreferrer">LINE</a>
+      </p>
+    </footer>
   </div>
 </template>
 
@@ -110,5 +117,22 @@ export default {
 }
 main {
   padding: 1rem;
+}
+.footer {
+  margin-top: 2rem;
+  padding: 1rem;
+  text-align: center;
+  font-size: 0.9rem;
+  color: #666;
+}
+
+.footer a {
+  color: #0077cc;
+  text-decoration: none;
+  margin: 0 0.5rem;
+}
+
+.footer a:hover {
+  text-decoration: underline;
 }
 </style>
