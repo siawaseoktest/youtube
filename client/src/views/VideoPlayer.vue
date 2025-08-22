@@ -50,6 +50,7 @@
             <div
               class="custom-dropdown-item"
               @click.stop="selectStreamType('2')"
+              style="color: red;"
             >
               再生できない場合こちら
             </div>
@@ -64,8 +65,8 @@
         "
       >
         <div class="video-meta">
-          <span>{{ viewCount }}回視聴</span
-          >・<span>高評価数{{ likeCount }}</span>
+          <span>{{ viewCount.replace(/\s+/g, '') }}</span>・
+          <span>高評価数{{ likeCount }}</span>
           <span class="dot">　</span>
           <span>{{ relativeDate }}</span>
           <div>
@@ -149,8 +150,7 @@
         </li>
       </ul>
     </aside>
-
-    <p v-else-if="error" class="error-msg">⚠️ {{ error }}</p>
+    <p v-else-if="error" class="error-msg">⚠️ {{ error }}<br><router-link :to="`/watch?v=${videoid}`">再読み込み</router-link></p>
     <p v-else class="loading-msg">読み込み中...</p>
   </div>
 </template>
@@ -189,7 +189,7 @@ export default {
       error: null,
       hoverId: null,
       showFullDescription: false,
-      localStreamType: this.getCookieSafe("StreamType") || "1", // cookieかデフォルト
+      localStreamType: this.getCookieSafe("StreamType") || "1", 
       isDropdownOpen: false,
     };
   },
@@ -312,15 +312,21 @@ export default {
       this.setCookieSafe("StreamType", this.localStreamType, 99999);
     },
     async fetchVideoData(id) {
-      try {
-        this.video = null;
-        this.error = null;
-        const res = await fetch(`${API_URL}?video=${id}`);
-        if (!res.ok) throw new Error(`動画取得エラー: HTTP ${res.status}`);
-        this.video = await res.json();
-      } catch (err) {
-        console.error("取得失敗:", err);
-        this.error = "動画情報を取得できませんでした。";
+      const maxRetries = 3;
+      for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+          this.video = null;
+          this.error = null;
+          const res = await fetch(`${API_URL}?video=${id}`);
+          if (!res.ok) throw new Error(`動画取得エラー: HTTP ${res.status}`);
+          this.video = await res.json();
+          return;
+        } catch (err) {
+          console.error(`取得失敗 (試行 ${attempt}/${maxRetries}):`, err);
+          if (attempt === maxRetries) {
+            this.error = "動画情報を取得できませんでした。";
+          }
+        }
       }
     },
     getPrimaryThumbnail(id) {

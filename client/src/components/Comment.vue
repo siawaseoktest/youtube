@@ -50,7 +50,9 @@
     </ul>
 
     <p v-else-if="!error">コメントが見つかりません。</p>
-    <p v-if="error" class="error-msg">⚠️ {{ error }}</p>
+    <p v-if="error" class="error-msg">⚠️ {{ error }}<br />
+      <button @click="fetchComments" class="retry-btn" type="button">再取得</button>
+    </p>
   </section>
 </template>
 
@@ -215,7 +217,6 @@ export default {
   position: relative;
 }
 
-/* 省略状態：高さ制限とオーバーフロー制御 */
 .comment-text.clamped {
   max-height: 250px;
   overflow: hidden;

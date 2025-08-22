@@ -73,7 +73,7 @@
     </div>
 
     <!-- 読み込み中 -->
-    <div v-else-if="loading">読み込み中...</div>
+    <div v-else-if="loading" style="height: 50px">読み込み中...</div>
   </div>
 </template>
 
@@ -124,9 +124,9 @@ const diffText = ref("0");
 const videoRef = ref(null);
 const audioRef = ref(null);
 
-// 現在のstreamType（props優先、なければcookie、なければ"2"）
+// 現在のstreamType（props優先、なければcookie、なければ"1"）
 const currentStreamType = ref(
-  props.streamType || getCookieSafe("StreamType") || "2"
+  props.streamType || getCookieSafe("StreamType") || "1"
 );
 let cookieWatchInterval = null;
 
@@ -175,7 +175,9 @@ async function fetchStreamUrl(id, streamType) {
       const data = await res.json();
 
       const srcs = {};
-      if (data.muxed360p) srcs.muxed360p = data.muxed360p.url;
+      if (data.muxed360p) {
+        srcs.muxed360p = data.muxed360p.url;
+      }
 
       const qualities = [];
       Object.keys(data).forEach((key) => {
@@ -188,7 +190,9 @@ async function fetchStreamUrl(id, streamType) {
         }
       });
 
-      availableQualities.value = qualities.sort((a, b) => parseInt(b) - parseInt(a));
+      availableQualities.value = qualities.sort(
+        (a, b) => parseInt(b) - parseInt(a)
+      );
       sources.value = srcs;
 
       if (selectedQuality.value !== "muxed360p" && qualities.length > 0) {
@@ -204,10 +208,11 @@ async function fetchStreamUrl(id, streamType) {
 
     } else if (Type === "3") {
       // Type3: muxed360p 全画面
-      // Type2 で取得済みがあればそれを使う
       if (sources.value.muxed360p) {
+        // すでに Type2 で取得済みの場合は再リクエスト不要
         streamUrl.value = sources.value.muxed360p;
       } else {
+        // Type1 → Type3 または直接 Type3 の場合は再リクエスト
         const res = await fetch(`${API_URL}?stream2=${id}`);
         if (!res.ok) throw new Error(`type3 ストリーム取得失敗: ${res.status}`);
         const data = await res.json();
@@ -243,6 +248,7 @@ async function fetchStreamUrl(id, streamType) {
     loading.value = false;
   }
 }
+
 
 // Cookie監視
 function watchStreamTypeCookie() {
