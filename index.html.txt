@@ -10,10 +10,11 @@
                    "メイリオ", Meiryo,
                    "ＭＳ ゴシック", "MS Gothic",
                    sans-serif;
+      background-color: white;
     }
     </style>
-    <script type="module" crossorigin src="https://cdn.jsdelivr.net/gh/ajgpw/youtube@main/client/dist/assets/index-BgIup_5q.js"></script>
-    <link rel="stylesheet" crossorigin href="https://cdn.jsdelivr.net/gh/ajgpw/youtube@main/client/dist/assets/index-BW5s3I2U.css">
+    <script type="module" crossorigin src="https://cdn.jsdelivr.net/gh/ajgpw/youtube@main/client/dist/assets/index-Bvvt0AzI.js"></script>
+    <link rel="stylesheet" crossorigin href="https://cdn.jsdelivr.net/gh/ajgpw/youtube@main/client/dist/assets/index-BMg7jT6Z.css">
   </head>
   <body>
     <div id="app"></div>
