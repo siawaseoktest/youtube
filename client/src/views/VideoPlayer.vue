@@ -70,7 +70,7 @@
           <span class="dot">　</span>
           <span>{{ relativeDate }}</span>
           <div>
-            <StreamPlayer v-if="currentType === '1'" :videoId="videoId" :streamType="'1'" style="display:none;" />
+            <div v-if="currentType === '1'" style="display:none;"></div>
             <StreamPlayer v-if="currentType === '3'" :videoId="videoId" :streamType="'3'" />
             <button @click="switchStream">この動画をダウンロードする</button>
           </div>
