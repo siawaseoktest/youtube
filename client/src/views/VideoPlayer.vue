@@ -32,7 +32,7 @@
               !resolvedStreamType
                 ? "再生出来ない場合"
                 : resolvedStreamType === "1"
-                ? "再生モード：通常"
+                ? "ブロックされた場合はこちら"
                 : resolvedStreamType === "2"
                 ? "再生モード：タイプ２"
                 : "再生出来ない場合"
