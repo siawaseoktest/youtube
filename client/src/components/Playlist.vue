@@ -68,7 +68,7 @@
 <script setup>
 import { ref, onMounted, nextTick, computed } from "vue";
 import { useRoute } from "vue-router";
-import { API_URL } from "@/api";
+import { apiurl } from "@/api";
 
 const props = defineProps({
   playlistId: String,
@@ -103,7 +103,7 @@ onMounted(async () => {
   error.value = false;
 
   try {
-    const res = await fetch(`${API_URL}?playlist=${playlistId.value}`);
+    const res = await fetch(`${apiurl()}?playlist=${playlistId.value}`);
     if (!res.ok) throw new Error(`HTTPエラー: ${res.status}`);
     playlist.value = await res.json();
 

@@ -57,7 +57,7 @@
 </template>
 
 <script>
-import { API_URL } from "@/api";
+import { apiurl } from "@/api";
 
 export default {
   name: "Comment",
@@ -101,7 +101,7 @@ export default {
       this.loading = true;
 
       try {
-        const res = await fetch(`${API_URL}?comments=${this.videoId}`);
+        const res = await fetch(`${apiurl()}?comments=${this.videoId}`);
 
         if (!res.ok) {
           throw new Error(`HTTP error! status: ${res.status}`);
