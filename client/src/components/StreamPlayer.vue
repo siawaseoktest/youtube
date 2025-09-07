@@ -1,5 +1,12 @@
 <template>
   <div class="video-wrapper">
+    <!-- 画質変更中の操作禁止オーバーレイこれやっとかないとえらいこっちゃになるしブラウザも認識できないばぐった音声が再生されつずけちゃう、(まあバグったら画質を変えれば直る("通常"以外の画質で))-->
+    <div
+      v-if="isQualitySwitching"
+      class="block-overlay"
+      aria-hidden="true"
+    ></div>
+
     <!-- エラー表示 -->
     <div v-if="error" class="error-box">
       ⚠️ {{ error }}
@@ -23,11 +30,27 @@
       class="video-container"
     >
       <template v-if="selectedQuality === 'muxed360p'">
-        <video ref="videoRef" :src="sources.muxed360p" controls></video>
+        <video ref="videoRef" controls autoplay>
+          <source
+            :src="sources.muxed360p?.url"
+            :type="sources.muxed360p?.mimeType"
+          />
+        </video>
       </template>
+
       <template v-else-if="selectedQuality !== 'muxed360p'">
-        <video ref="videoRef" controls></video>
-        <audio ref="audioRef" preload="auto" style="display:none;"></audio>
+        <video ref="videoRef" preload="auto" controls>
+          <source
+            :src="sources[selectedQuality]?.video?.url"
+            :type="sources[selectedQuality]?.video?.mimeType"
+          />
+        </video>
+        <audio ref="audioRef" preload="auto" style="display:none;">
+          <source
+            :src="sources[selectedQuality]?.audio?.url"
+            :type="sources[selectedQuality]?.audio?.mimeType"
+          />
+        </audio>
       </template>
 
       <!-- 設定ボックス -->
@@ -35,7 +58,7 @@
         <label>
           画質:
           <select v-model="selectedQuality" class="selector">
-            <option value="muxed360p">通常</option>
+            <option value="muxed360p" v-if="sources.muxed360p">通常</option>
             <option
               v-for="q in availableQualities"
               :key="q"
@@ -60,7 +83,6 @@
     </div>
 
     <!-- iframeモード -->
-    <!-- StreamType=1 -->
     <div v-else-if="streamUrl" class="video-container">
       <iframe
         :src="streamUrl"
@@ -80,6 +102,7 @@
 <script setup>
 import { ref, watch, onMounted, onBeforeUnmount, nextTick } from "vue";
 import { API_URL } from "@/api";
+import { setupSyncPlayback } from "@/components/syncPlayback";
 
 // props
 const props = defineProps({
@@ -87,7 +110,7 @@ const props = defineProps({
   streamType: { type: String, default: "" }
 });
 
-// cookie安全取得
+// cookieを安全に取得
 function getCookieSafe(name) {
   try {
     const value = document.cookie
@@ -105,9 +128,7 @@ function setCookieSafe(name, value, seconds) {
     document.cookie = `${name}=${encodeURIComponent(
       value
     )}; expires=${expires}; path=/`;
-  } catch {
-    // cookie使えない環境なら何もしない
-  }
+  } catch {}
 }
 
 // 状態
@@ -124,22 +145,23 @@ const diffText = ref("0");
 const videoRef = ref(null);
 const audioRef = ref(null);
 
-// 現在のstreamType（props優先、なければcookie、なければ"1"）
 const currentStreamType = ref(
   props.streamType || getCookieSafe("StreamType") || "1"
 );
 let cookieWatchInterval = null;
 
-// 設定ボックスの自動非表示
 const settingsVisible = ref(true);
 let visibilityTimer = null;
-
 const loading = ref(false);
+const isQualitySwitching = ref(false);
 
+// mount
 onMounted(() => {
   document.cookie = "webappname=siatube; path=/; max-age=31536000";
+  setCookieSafe("audioJumpCooldown", "false", 1);
   watchStreamTypeCookie();
   setupAutoHide();
+  resetSettingsVisibility();
 });
 
 onBeforeUnmount(() => {
@@ -169,23 +191,32 @@ async function fetchStreamUrl(id, streamType) {
     const Type = streamType || "1";
 
     if (Type === "2") {
-      // Type2 ストリーム取得
       const res = await fetch(`${API_URL}?&stream2=${id}`);
       if (!res.ok) throw new Error(`type2 ストリーム取得失敗: ${res.status}`);
       const data = await res.json();
 
       const srcs = {};
+      const qualities = [];
+
       if (data.muxed360p) {
-        srcs.muxed360p = data.muxed360p.url;
+        srcs.muxed360p = {
+          url: data.muxed360p.url,
+          mimeType: data.muxed360p.mimeType
+        };
       }
 
-      const qualities = [];
       Object.keys(data).forEach((key) => {
         if (/^\d{3,4}p$/.test(key)) {
           qualities.push(key);
           srcs[key] = {
-            video: data[key].video.url,
-            audio: data[key].audio.url
+            video: {
+              url: data[key].video.url,
+              mimeType: data[key].video.mimeType
+            },
+            audio: {
+              url: data[key].audio.url,
+              mimeType: data[key].audio.mimeType
+            }
           };
         }
       });
@@ -203,23 +234,22 @@ async function fetchStreamUrl(id, streamType) {
 
       await nextTick();
       if (selectedQuality.value !== "muxed360p") {
-        setupSyncPlayback();
+        setupSyncPlayback(
+          videoRef.value,
+          audioRef.value,
+          sources,
+          selectedQuality,
+          diffText,
+          selectedPlaybackRate
+        );
       }
-
     } else if (Type === "3") {
-      // Type3: muxed360p 全画面
-      if (sources.value.muxed360p) {
-        // すでに Type2 で取得済みの場合は再リクエスト不要
-        streamUrl.value = sources.value.muxed360p;
-      } else {
-        // Type1 → Type3 または直接 Type3 の場合は再リクエスト
-        const res = await fetch(`${API_URL}?stream2=${id}`);
-        if (!res.ok) throw new Error(`type3 ストリーム取得失敗: ${res.status}`);
-        const data = await res.json();
-        if (!data.muxed360p) throw new Error("Type3: muxed360p がありません");
-        streamUrl.value = data.muxed360p.url;
-        sources.value.muxed360p = streamUrl.value;
-      }
+      const res = await fetch(`${API_URL}?stream2=${id}`);
+      if (!res.ok) throw new Error(`type3 ストリーム取得失敗: ${res.status}`);
+      const data = await res.json();
+      if (!data.muxed360p) throw new Error("Type3: muxed360p がありません");
+      streamUrl.value = data.muxed360p.url;
+      sources.value.muxed360p = { url: streamUrl.value, mimeType: data.muxed360p.mimeType };
 
       selectedQuality.value = "muxed360p";
       streamType2.value = false;
@@ -229,9 +259,7 @@ async function fetchStreamUrl(id, streamType) {
         videoRef.value.requestFullscreen().catch(() => {});
         videoRef.value.play().catch(() => {});
       }
-
     } else {
-      // Type1 またはその他
       const res = await fetch(`${API_URL}?stream=${id}`);
       if (!res.ok) throw new Error(`ストリーム取得失敗: ${res.status}`);
       const data = await res.json();
@@ -240,7 +268,6 @@ async function fetchStreamUrl(id, streamType) {
     }
 
     window.scrollTo({ top: 0, behavior: "smooth" });
-
   } catch (err) {
     console.error("取得エラー:", err);
     error.value = "ストリームURLの取得に失敗しました。";
@@ -248,7 +275,6 @@ async function fetchStreamUrl(id, streamType) {
     loading.value = false;
   }
 }
-
 
 // Cookie監視
 function watchStreamTypeCookie() {
@@ -286,7 +312,7 @@ watch(selectedPlaybackRate, () => {
   if (videoRef.value) videoRef.value.playbackRate = selectedPlaybackRate.value;
 });
 
-// 親からの props.streamType 変更に追従
+// props変更追従
 watch(
   () => props.streamType,
   (newType) => {
@@ -311,219 +337,70 @@ watch(
 );
 
 // 画質変更時にセットアップ
+function clearType2SrcRepeated() {
+  if (!streamType2.value) return;
+
+  let count = 0;
+  const interval = setInterval(() => {
+    if (videoRef.value) {
+      videoRef.value.removeAttribute("src");
+      videoRef.value.load(); 
+    }
+    if (audioRef.value) {
+      audioRef.value.removeAttribute("src");
+      audioRef.value.load();
+    }
+    count++;
+    if (count >= 2) {
+      clearInterval(interval);
+    }
+  }, 200);
+}
+
 watch(selectedQuality, () => {
   if (
     streamType2.value &&
     selectedQuality.value !== "muxed360p" &&
     sources.value[selectedQuality.value]
   ) {
-    nextTick(() => setupSyncPlayback());
-  }
-});
+    // 画質変更中フラグON（動画の準備ができる前にユーザーが再生再開をしてしまうとグワーってばぐります。）
+    isQualitySwitching.value = true;
 
-function setupSyncPlayback() {
-  const video = videoRef.value;
-  const audio = audioRef.value;
-  if (!video || !audio) return;
+    // overlayは2s後に自動で消す（画質変更処理と並列、今は2sだけど回線速度が遅い場合は2sじゃ足りない）
+    setTimeout(() => {
+      isQualitySwitching.value = false;
+    }, 2000);
 
-  // Safari系判定
-  function isSafari() {
-    const ua = navigator.userAgent;
-    return (
-      /Safari/.test(ua) &&
-      !/Chrome/.test(ua) &&
-      (/iPhone|iPad|Macintosh/.test(ua))
-    );
-  }
-  const safariMode = isSafari();
-
-  let videoSrc, audioSrc;
-  if (selectedQuality.value !== "muxed360p" && sources.value[selectedQuality.value]) {
-    videoSrc = sources.value[selectedQuality.value].video;
-    audioSrc = sources.value[selectedQuality.value].audio;
-  } else if (sources.value.separateHigh) {
-    videoSrc = sources.value.separateHigh.video;
-    audioSrc = sources.value.separateHigh.audio;
-  } else {
-    return;
-  }
-
-  video.src = videoSrc;
-  audio.src = audioSrc;
-
-  let isStartupJumpDone = false;
-  let isBuffering = false;
-  let isSyncingPlayback = false;
-  let lastJumpTime = 0;
-  const jumpCooldown = 500; // ms
-
-  function jumpAudioToVideo() {
-    const now = performance.now();
-    if (now - lastJumpTime < jumpCooldown) {
-    return;
+    // 画質変更処理
+    let prevTime = 0;
+    if (videoRef.value) {
+      prevTime = videoRef.value.currentTime;
+      videoRef.value.pause();
     }
-    const target = Math.max(0, video.currentTime - 0.05);
-    audio.currentTime = target;
-    lastJumpTime = now;
-  }
-  
-  function correctPlaybackRate(diff) {
-    const abs = Math.abs(diff);
-
-    // Safari系専用
-    if (safariMode) {
-      // 2秒以上のズレは即ジャンプ
-      if (abs >= 2) {
-        jumpAudioToVideo();
-        return;
-      }
-      
-      if (abs < 0.01) {
-        audio.playbackRate = 1.0;
-      } else if (abs < 0.1) {
-        audio.playbackRate = diff > 0 ? 1.02 : 0.98;
-      } else if (abs < 1.5) {
-        audio.playbackRate = diff > 0 ? 1.06 : 0.94;
-      } else if (abs < 2.0) {
-        audio.playbackRate = diff > 0 ? 1.1 : 0.9;
-      } else {
-        audio.playbackRate = 1.0;
-        jumpAudioToVideo();
-      }
-
-      if (abs < 0.015) {
-        audio.playbackRate = selectedPlaybackRate.value;
-        return;
-      }
-
-      const adjustmentRatio = abs / 1.5;
-      const rateAdjust = 1 + adjustmentRatio * maxAdjust * (diff > 0 ? 1 : -1);
-      audio.playbackRate = selectedPlaybackRate.value * rateAdjust;
-      return;
+    if (audioRef.value) {
+      audioRef.value.pause();
     }
 
-    // 通常ブラウザ
-    if (performance.now() - lastJumpTime < jumpCooldown) {
-      audio.playbackRate = selectedPlaybackRate.value;
-      return;
-    }
-    if (abs >= 0.9) {
-      jumpAudioToVideo();
-      return;
-    }
-
-    let maxAdjust;
-    if (abs >= 0.8) {
-      maxAdjust = 0.85;
-    } else if (abs >= 0.1) {
-      maxAdjust = 0.75;
-    } else {
-      maxAdjust = 0.015;
-    }
-
-    if (abs < 0.015) {
-      audio.playbackRate = selectedPlaybackRate.value;
-      return;
-    }
-
-    const adjustmentRatio = abs / 0.9;
-    const rateAdjust = 1 + adjustmentRatio * maxAdjust * (diff > 0 ? 1 : -1);
-    audio.playbackRate = selectedPlaybackRate.value * rateAdjust;
-  }
-
-  // 再生・停止時
-  function playBoth(withJump = false) {
-    if (isSyncingPlayback) return;
-    isSyncingPlayback = true;
-
-    Promise.all([
-      video.paused ? video.play() : Promise.resolve(),
-      audio.paused ? audio.play() : Promise.resolve(),
-    ])
-      .then(() => {
-        if (withJump) jumpAudioToVideo();
-      })
-      .finally(() => {
-        isSyncingPlayback = false;
-      });
-  }
-
-  function pauseBoth() {
-    if (isSyncingPlayback) return;
-    isSyncingPlayback = true;
-    video.pause();
-    audio.pause();
-    isSyncingPlayback = false;
-  }
-
-  video.removeEventListener("play", playBoth);
-  audio.removeEventListener("play", playBoth);
-  video.removeEventListener("pause", pauseBoth);
-  audio.removeEventListener("pause", pauseBoth);
-
-  video.addEventListener("play", () => playBoth(true));
-  audio.addEventListener("play", () => playBoth(true));
-  video.addEventListener("pause", pauseBoth);
-  audio.addEventListener("pause", pauseBoth);
-
-  video.addEventListener("waiting", () => {
-    isBuffering = true;
-    audio.pause();
-  });
-
-  video.addEventListener("playing", () => {
-    if (isBuffering) {
-      isBuffering = false;
-      jumpAudioToVideo();
-      if (!video.paused) {
-        audio.play().catch(() => {});
-      }
-    }
-  });
-
-  // 再生開始
-  video.onplay = () => {
-    video.playbackRate = selectedPlaybackRate.value;
-    audio.playbackRate = selectedPlaybackRate.value;
-    audio.play().catch(() => {});
-
-    if (!isStartupJumpDone) {
+    nextTick(() => {
+      clearType2SrcRepeated();
+      setupSyncPlayback(
+        videoRef.value,
+        audioRef.value,
+        sources,
+        selectedQuality,
+        diffText,
+        selectedPlaybackRate
+      );
       setTimeout(() => {
-        jumpAudioToVideo();
-        isStartupJumpDone = true;
-      }, 100);
-    }
-  };
-
-  video.onseeking = () => {
-    setTimeout(() => jumpAudioToVideo(), 100);
-  };
-
-  function syncLoop() {
-    if (!video.paused && !audio.paused) {
-      const diff = video.currentTime - audio.currentTime;
-      diffText.value = `${(diff * 1000).toFixed(0)} ms`;
-      correctPlaybackRate(diff);
-    }
-    requestAnimationFrame(syncLoop);
+        if (videoRef.value) videoRef.value.currentTime = prevTime;
+        if (audioRef.value) audioRef.value.currentTime = prevTime;
+        setTimeout(() => {
+          if (videoRef.value) videoRef.value.currentTime = prevTime;
+          if (audioRef.value) audioRef.value.currentTime = prevTime;
+        }, 600);
+      }, 600);
+    });
   }
-  requestAnimationFrame(syncLoop);
-
-  // 倍速
-  video.playbackRate = selectedPlaybackRate.value;
-  audio.playbackRate = selectedPlaybackRate.value;
-}
-
-onMounted(() => {
-  setCookie("audioJumpCooldown", "false", 1);
-  watchStreamTypeCookie();
-  setupAutoHide();
-  resetSettingsVisibility();
-});
-
-onBeforeUnmount(() => {
-  if (cookieWatchInterval) clearInterval(cookieWatchInterval);
-  removeAutoHide();
 });
 </script>
 
@@ -595,4 +472,14 @@ audio {
   object-fit: contain; 
 }
 
+.block-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 9999;
+  background: rgba(0, 0, 0, 0.315);
+  pointer-events: all;
+}
 </style>
