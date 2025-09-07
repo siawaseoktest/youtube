@@ -19,6 +19,108 @@ export function setupSyncPlayback(video, audio, sources, selectedQuality, diffTe
     return;
   }
 
+  // --- Safari専用シンプル同期 ---
+  if (safariMode) {
+    // 画質変更時は必ずpauseしてsrcをクリア
+    video.pause();
+    audio.pause();
+    video.src = "";
+    audio.src = "";
+    video.load();
+    audio.load();
+
+    // 新しいソースをセット
+    video.src = videoSrc;
+    audio.src = audioSrc;
+
+    // 初期倍速反映
+    video.playbackRate = selectedPlaybackRate.value;
+    audio.playbackRate = selectedPlaybackRate.value;
+
+    // 既存イベントを解除
+    video.onplay = null;
+    audio.onplay = null;
+    video.onpause = null;
+    audio.onpause = null;
+    video.onseeking = null;
+
+    // イベント登録（毎回新規登録）
+    video.addEventListener("play", () => {
+      video.playbackRate = selectedPlaybackRate.value;
+      audio.playbackRate = selectedPlaybackRate.value;
+      if (audio.paused) audio.play().catch(() => {});
+    });
+    audio.addEventListener("play", () => {
+      video.playbackRate = selectedPlaybackRate.value;
+      audio.playbackRate = selectedPlaybackRate.value;
+      if (video.paused) video.play().catch(() => {});
+    });
+    video.addEventListener("pause", () => {
+      if (!audio.paused) audio.pause();
+    });
+    audio.addEventListener("pause", () => {
+      if (!video.paused) video.pause();
+    });
+    video.addEventListener("seeking", () => {
+      audio.currentTime = video.currentTime;
+    });
+
+    // 再生再開時にも音声再生を保証
+    video.addEventListener("playing", () => {
+      if (audio.paused) audio.play().catch(() => {});
+    });
+
+    // --- Safari用：緩い同期補正 ---
+    let lastJumpTime = 0;
+    const jumpInterval = 1000; // ms
+    function looseSync() {
+      if (!video.paused) {
+        // 音声が流れていない場合は再生
+        if (audio.paused) {
+          audio.play().catch(() => {});
+        }
+        const diff = video.currentTime - audio.currentTime;
+        diffText.value = `${(diff * 1000).toFixed(0)} ms`;
+
+        // ±0.5秒は何もしない
+        if (Math.abs(diff) <= 0.5) {
+          audio.playbackRate = selectedPlaybackRate.value;
+          if (audio.paused) {
+            audio.play().catch(() => {});
+          }
+        }
+        // 1秒以上ズレたらジャンプ（1000msに1回だけ）
+        else if (Math.abs(diff) >= 1) {
+          const now = performance.now();
+          if (now - lastJumpTime > jumpInterval) {
+            audio.currentTime = video.currentTime;
+            audio.playbackRate = selectedPlaybackRate.value;
+            lastJumpTime = now;
+          }
+        }
+        // 0.5秒～1秒の間は再生速度で補正
+        else {
+          // 最大±10%だけ補正
+          const rateAdjust = 1 + Math.min(Math.abs(diff) / 1, 0.1) * (diff > 0 ? 1 : -1);
+          audio.playbackRate = selectedPlaybackRate.value * rateAdjust;
+        }
+      }
+      requestAnimationFrame(looseSync);
+    }
+    requestAnimationFrame(looseSync);
+
+    return; // Safariはここで終了
+  }
+
+  // --- ここから非Safari用の既存同期処理 ---
+  // 画質変更時は必ずpauseしてsrcをクリア
+  video.pause();
+  audio.pause();
+  video.src = "";
+  audio.src = "";
+  video.load();
+  audio.load();
+  // 新しいソースをセット
   video.src = videoSrc;
   audio.src = audioSrc;
 
@@ -132,6 +234,13 @@ export function setupSyncPlayback(video, audio, sources, selectedQuality, diffTe
   });
 
   video.addEventListener("playing", () => {
+    // Safari: 映像再生再開時に音声も再生
+    if (safariMode) {
+      if (audio.paused && !isSyncingPlayback) {
+        audio.play().catch(() => {});
+      }
+    }
+    // 既存の処理
     if (isBuffering) {
       isBuffering = false;
       jumpAudioToVideo();
@@ -145,14 +254,14 @@ export function setupSyncPlayback(video, audio, sources, selectedQuality, diffTe
   // 再生開始
   video.onplay = () => {
     video.playbackRate = selectedPlaybackRate.value;
-    audio.playbackRate = selectedPlaybackRate.value;
-    // 映像が再生可能か確認してから音声再生
-    if (video.readyState >= 2) { // HAVE_CURRENT_DATA
+    audio.playbackRate = selectedPlaybackRate.value; // 先に設定
+
+    if (video.readyState >= 2) {
       if (audio.paused && !isSyncingPlayback) {
+        // audio.play()の直後はplaybackRate変更しない
         audio.play().catch(() => {});
       }
     } else {
-      // 映像が再生可能になるまで待つ
       const onCanPlay = () => {
         if (audio.paused && !isSyncingPlayback) {
           audio.play().catch(() => {});
