@@ -2,7 +2,11 @@
   <section class="comments-section">
     <h2 v-if="totalCommentCount !== null">{{ totalCommentCount }}</h2>
 
-    <ul v-if="comments.length > 0" class="comment-list">
+    <!-- ローディング表示 -->
+    <p v-if="loading">コメントを読み込み中...</p>
+
+    <!-- コメントリスト -->
+    <ul v-else-if="comments.length > 0" class="comment-list">
       <li v-for="(c, i) in comments" :key="c.id || i" class="comment-item">
         <img
           v-if="c.authorIcon"
@@ -46,9 +50,12 @@
     </ul>
 
     <p v-else-if="!error">コメントが見つかりません。</p>
-    <p v-if="error" class="error-msg">⚠️ {{ error }}</p>
+    <p v-if="error" class="error-msg">⚠️ {{ error }}<br />
+      <button @click="fetchComments" class="retry-btn" type="button">再取得</button>
+    </p>
   </section>
 </template>
+
 <script>
 export default {
   name: "Comment",
@@ -63,6 +70,7 @@ export default {
       comments: [],
       totalCommentCount: null,
       error: null,
+      loading: false,
     };
   },
   watch: {
@@ -88,6 +96,7 @@ export default {
       this.error = null;
       this.comments = [];
       this.totalCommentCount = null;
+      this.loading = true;
 
       try {
         const res = await fetch(`/api/comments/${this.videoId}`);
@@ -117,6 +126,8 @@ export default {
       } catch (err) {
         console.error("コメント取得エラー:", err);
         this.error = "コメントを読み込めませんでした。";
+      } finally {
+        this.loading = false;
       }
     },
 
@@ -204,7 +215,6 @@ export default {
   position: relative;
 }
 
-/* 省略状態：高さ制限とオーバーフロー制御 */
 .comment-text.clamped {
   max-height: 250px;
   overflow: hidden;

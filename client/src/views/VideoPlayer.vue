@@ -2,7 +2,7 @@
   <div class="page-container">
     <div class="main-content" v-if="video">
       <div class="video-wrapper">
-        <StreamPlayer :videoId="videoId" />
+        <StreamPlayer :videoId="videoId" :streamType="resolvedStreamType" />
       </div>
 
       <h1 class="video-title" ref="videoTitle">{{ title }}</h1>
@@ -29,11 +29,11 @@
         >
           <span class="custom-dropdown-label">
             {{
-              !streamTypeCookie
+              !resolvedStreamType
                 ? "再生出来ない場合"
-                : streamTypeCookie === "1"
-                ? "再生モード：通常"
-                : streamTypeCookie === "2"
+                : resolvedStreamType === "1"
+                ? "ブロックされた場合はこちら"
+                : resolvedStreamType === "2"
                 ? "再生モード：タイプ２"
                 : "再生出来ない場合"
             }}
@@ -50,6 +50,7 @@
             <div
               class="custom-dropdown-item"
               @click.stop="selectStreamType('2')"
+              style="color: red;"
             >
               再生できない場合こちら
             </div>
@@ -64,10 +65,15 @@
         "
       >
         <div class="video-meta">
-          <span>{{ viewCount }}</span
-          >・<span>高評価数{{ likeCount }}</span>
+          <span>{{ viewCount.replace(/\s+/g, '') }}</span>・
+          <span>高評価数{{ likeCount }}</span>
           <span class="dot">　</span>
           <span>{{ relativeDate }}</span>
+          <div>
+            <div v-if="currentType === '1'" style="display:none;"></div>
+            <StreamPlayer v-if="currentType === '3'" :videoId="videoId" :streamType="'3'" />
+            <button @click="switchStream">この動画をダウンロードする</button>
+          </div>
         </div>
         <div class="video-description">
           <div v-if="!showFullDescription" class="description-preview">
@@ -115,15 +121,8 @@
             <div class="thumb-wrapper">
               <img
                 v-if="hoverId !== r.videoId || !r.previewUrl"
-                :src="getPrimaryThumbnail(r.videoId)"
+                :src="'data:image/jpeg;base64,' + r.base64imge"
                 :alt="r.title"
-                class="thumb-img"
-                @error="onImageError($event, r.videoId)"
-              />
-              <img
-                v-else
-                :src="r.previewUrl"
-                :alt="r.title + ' プレビュー'"
                 class="thumb-img"
                 @error="onImageError($event, r.videoId)"
               />
@@ -143,17 +142,15 @@
               <span class="video-title-related" :title="r.title">{{ r.title }}</span>
               <div class="video-metadata">
                 <div class="one-line re-actername">{{ r.metadataRow1 }}</div>
-                <span v-if="r.metadataRow2Part1 !== '本日更新'">{{ r.metadataRow2Part1 === '再生リストの全体を見る' ? '再生リスト' : r.metadataRow2Part1 }}</span>
-                <span v-if="r.metadataRow2Part2" class="dot">・</span>
-                {{ r.metadataRow2Part2 }}
+                <span v-if="r.metadataRow2Part1 && r.metadataRow2Part1.replace(/\s+/g, '') !== '本日更新'">{{ r.metadataRow2Part1.replace(/\s+/g, '') === '再生リストの全体を見る' ? '再生リスト' : r.metadataRow2Part1.replace(/\s+/g, '') }}</span>
+                <span v-if="r.metadataRow2Part2 && r.metadataRow2Part2.replace(/\s+/g, '')" class="dot">・</span>{{ r.metadataRow2Part2 ? r.metadataRow2Part2.replace(/\s+/g, '') : '' }}
               </div>
             </div>
           </router-link>
         </li>
       </ul>
     </aside>
-
-    <p v-else-if="error" class="error-msg">⚠️ {{ error }}</p>
+    <p v-else-if="error" class="error-msg">⚠️ {{ error }}<br><router-link :to="`/watch?v=${videoid}`">再読み込み</router-link></p>
     <p v-else class="loading-msg">読み込み中...</p>
   </div>
 </template>
@@ -161,6 +158,7 @@
 <script setup>
 import { computed } from "vue";
 import { useRoute } from "vue-router";
+import { ref } from 'vue';
 import PlaylistComponent from "@/components/Playlist.vue";
 import Comment from "@/components/Comment.vue";
 import StreamPlayer from "@/components/StreamPlayer.vue";
@@ -169,12 +167,19 @@ window.scrollTo(0, 0);
 const route = useRoute();
 const videoId = computed(() => route.query.v);
 const playlistId = computed(() => route.query.list);
+
+const currentType = ref('1');
+
+function switchStream() {
+  currentType.value = '3';
+}
 </script>
 
 <script>
 export default {
   props: {
     videoId: { type: String, required: true },
+    streamType: { type: String, default: "" } 
   },
   data() {
     return {
@@ -182,7 +187,7 @@ export default {
       error: null,
       hoverId: null,
       showFullDescription: false,
-      streamTypeCookie: this.getCookie("StreamType") || "",
+      localStreamType: this.getCookieSafe("StreamType") || "1", 
       isDropdownOpen: false,
     };
   },
@@ -281,31 +286,45 @@ export default {
     },
   },
   methods: {
-    getCookie(name) {
-      const match = document.cookie.match(
-        new RegExp("(^| )" + name + "=([^;]+)")
-      );
-      return match ? decodeURIComponent(match[2]) : null;
+    getCookieSafe(name) {
+      try {
+        const match = document.cookie.match(
+          new RegExp("(^| )" + name + "=([^;]+)")
+        );
+        return match ? decodeURIComponent(match[2]) : null;
+      } catch {
+        return null; // cookie非対応環境
+      }
     },
-    setCookie(name, value, seconds) {
-      const expires = new Date(Date.now() + seconds * 1000).toUTCString();
-      document.cookie = `${name}=${encodeURIComponent(
-        value
-      )}; expires=${expires}; path=/`;
+    setCookieSafe(name, value, seconds) {
+      try {
+        const expires = new Date(Date.now() + seconds * 1000).toUTCString();
+        document.cookie = `${name}=${encodeURIComponent(
+          value
+        )}; expires=${expires}; path=/`;
+      } catch {
+        // cookie非対応時は何もしない
+      }
     },
     onStreamTypeChange() {
-      this.setCookie("StreamType", this.streamTypeCookie, 99999);
+      this.setCookieSafe("StreamType", this.localStreamType, 99999);
     },
     async fetchVideoData(id) {
-      try {
-        this.video = null;
-        this.error = null;
-        const res = await fetch(`/api/video/${id}`);
-        if (!res.ok) throw new Error(`動画取得エラー: HTTP ${res.status}`);
-        this.video = await res.json();
-      } catch (err) {
-        console.error("取得失敗:", err);
-        this.error = "動画情報を取得できませんでした。";
+      const maxRetries = 3;
+      for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+          this.video = null;
+          this.error = null;
+          const res = await fetch(`/api/video/${id}`);
+          if (!res.ok) throw new Error(`動画取得エラー: HTTP ${res.status}`);
+          this.video = await res.json();
+          return;
+        } catch (err) {
+          console.error(`取得失敗 (試行 ${attempt}/${maxRetries}):`, err);
+          if (attempt === maxRetries) {
+            this.error = "動画情報を取得できませんでした。";
+          }
+        }
       }
     },
     getPrimaryThumbnail(id) {
@@ -313,7 +332,7 @@ export default {
     },
     onImageError(event, id) {
       if (!event.target.dataset.error) {
-        event.target.src = `/api/yt-img?id=${id}`;
+        event.target.src = `https://i.ytimg.com/vi/${id}/sddefault.jpg`;
         event.target.dataset.error = true;
       }
     },
@@ -326,18 +345,14 @@ export default {
         }
       });
     },
-
-    // ▼ カスタムドロップダウンの開閉・選択
     toggleDropdown() {
       this.isDropdownOpen = !this.isDropdownOpen;
     },
     selectStreamType(value) {
-      this.streamTypeCookie = value;
+      this.localStreamType = value;
       this.isDropdownOpen = false;
       this.onStreamTypeChange();
     },
-
-    // ▼ 外クリック・Esc処理
     handleClickOutside(event) {
       if (this.isDropdownOpen && !this.$el.contains(event.target)) {
         this.isDropdownOpen = false;
@@ -373,6 +388,7 @@ export default {
 };
 </script>
 
+
 <style scoped>
 .dropdown-ending {
   display: inline-block;
@@ -404,6 +420,7 @@ export default {
 
 .re-actername{
   margin-bottom: 3px;
+  font-size: 0.8rem;
 }
 
 .custom-dropdown-menu {
@@ -568,7 +585,7 @@ p {
 }
 
 .related-title {
-  font-size: 1.1rem;
+  font-size: 1.4rem;
   font-weight: 500;
   margin-bottom: 12px;
 }
@@ -626,7 +643,7 @@ p {
 }
 
 .video-title-related {
-  font-size: 0.9rem;
+  font-size: 1rem;
   font-weight: 500;
   line-height: 1.3;
   color: #030303;

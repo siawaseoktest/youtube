@@ -158,7 +158,7 @@ export default {
     const defaultBanner = "/default-banner.png";
 
     function getPrimaryThumbnail(id) {
-      return `https://i.ytimg.com/vi/${id}/sddefault.jpg`;
+      return `/api/yt-img?id=${id}`;
     }
 
     function onImageError(event, id) {

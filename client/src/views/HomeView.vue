@@ -74,7 +74,7 @@ export default {
       this.loading = true;
       this.error = null;
       try {
-        const res = await fetch("/api/trend");
+        const res = await fetch("/api/trend", {redirect: "follow",});
         if (!res.ok) throw new Error("データ取得失敗");
         const data = await res.json();
         this.trend = data;

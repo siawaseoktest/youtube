@@ -11,10 +11,11 @@
               :data-duration="formatDuration(video.duration)"
             >
               <img
-                :src="getPrimaryThumbnail(video.id)"
+                :src="video.thumbnails?.medium?.url || video.thumbnails?.standard?.url || getPrimaryThumbnail(video.id)"
                 :alt="video.title"
                 @error="onImageError($event, video.id)"
               />
+
             </div>
           </router-link>
 
@@ -32,7 +33,7 @@
               class="channel-link"
             >
               <div class="channel-info">
-                <img
+                <img 
                   :src="video.channelIcon"
                   :alt="video.channel + 'のアイコン'"
                   class="channel-icon"
@@ -157,7 +158,7 @@ export default {
 
     onImageError(event, id) {
       if (!event.target.dataset.error) {
-        event.target.src = `/api/yt-img?id=${id}`;
+        event.target.src = `https://i.ytimg.com/vi/${id}/sddefault.jpg`;
         event.target.dataset.error = true;
       }
     },
