@@ -57,8 +57,6 @@
 </template>
 
 <script>
-import { apiurl } from "@/api";
-
 export default {
   name: "Comment",
   props: {
@@ -101,7 +99,7 @@ export default {
       this.loading = true;
 
       try {
-        const res = await fetch(`${apiurl()}?comments=${this.videoId}`);
+        const res = await fetch(`/api/comments/${this.videoId}`);
 
         if (!res.ok) {
           throw new Error(`HTTP error! status: ${res.status}`);

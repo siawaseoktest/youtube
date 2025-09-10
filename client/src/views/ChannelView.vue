@@ -146,7 +146,6 @@
 import { ref, onMounted, watch } from "vue";
 import { useRoute } from "vue-router";
 import VideoList from "@/components/Playlist.vue";
-import { apiurl } from "@/api";
 
 export default {
   components: { VideoList },
@@ -159,19 +158,19 @@ export default {
     const defaultBanner = "/default-banner.png";
 
     function getPrimaryThumbnail(id) {
-      return `https://i.ytimg.com/vi/${id}/sddefault.jpg`;
+      return `/api/yt-img?id=${id}`;
     }
 
     function onImageError(event, id) {
       if (!event.target.dataset.error) {
-        event.target.src = `https://i.ytimg.com/vi/${id}/sddefault.jpg`;
+        event.target.src = `/api/yt-img?id=${id}`;
         event.target.dataset.error = true;
       }
     }
 
     async function fetchChannelInfo(channelId) {
       try {
-        const res = await fetch(`${apiurl()}?channel=${channelId}`);
+        const res = await fetch(`/api/channel/${channelId}`);
         if (!res.ok) throw new Error("チャンネル情報取得失敗");
         const data = await res.json();
         channel.value = data;

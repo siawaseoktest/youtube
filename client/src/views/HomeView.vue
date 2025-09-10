@@ -74,7 +74,7 @@ export default {
       this.loading = true;
       this.error = null;
       try {
-        const res = await fetch("https://raw.githubusercontent.com/ajgpw/youtubedata/refs/heads/main/trend-base64.json", {redirect: "follow",});
+        const res = await fetch("/api/trend", {redirect: "follow",});
         if (!res.ok) throw new Error("データ取得失敗");
         const data = await res.json();
         this.trend = data;

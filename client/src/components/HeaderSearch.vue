@@ -58,9 +58,7 @@
 
 <script setup>
 import { ref, onMounted, onBeforeUnmount } from "vue";
-import { useRouter } from "vue-router";
 
-const router = useRouter();
 const emit = defineEmits(["search"]);
 
 const query = ref("");
@@ -79,7 +77,6 @@ const onClickOutside = (event) => {
 
 onMounted(() => {
   document.addEventListener("click", onClickOutside);
-  router.push('/');
 });
 
 onBeforeUnmount(() => {
@@ -97,7 +94,7 @@ const fetchSuggestions = async (keyword) => {
 
   try {
     const res = await fetch(
-      `https://www.google.com/complete/search?client=youtube&hl=ja&ds=yt&q=${encodeURIComponent(keyword)}`,
+      `/api/suggest?keyword=${encodeURIComponent(keyword)}`,
       { signal: fetchController.signal }
     );
     if (!res.ok) throw new Error("Network error");
@@ -148,12 +145,12 @@ const submitSearch = () => {
 const onSubmit = () => {
   submitSearch();
 };
-
 const clearQuery = () => {
   query.value = "";
   suggestions.value = [];
   selectedIndex.value = -1;
 };
+
 </script>
 
 <style scoped>

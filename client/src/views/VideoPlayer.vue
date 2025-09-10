@@ -176,8 +176,6 @@ function switchStream() {
 </script>
 
 <script>
-import { apiurl } from "@/api";
-
 export default {
   props: {
     videoId: { type: String, required: true },
@@ -194,49 +192,48 @@ export default {
     };
   },
   computed: {
-    resolvedStreamType() {
-      return this.streamType || this.localStreamType;
-    },
     viewCount() {
       return (
-        this.video?.views ||
+        this.video?.primary_info?.view_count?.short_view_count?.text ||
+        this.video?.primary_info?.view_count?.view_count?.text ||
         "情報なし"
       );
     },
     title() {
-      return this.video?.title || "情報なし";
+      return this.video?.primary_info?.title?.text || "情報なし";
     },
     relativeDate() {
-      return this.video?.relativeDate || "";
+      return this.video?.primary_info?.relative_date?.text || "";
     },
     likeCount() {
       return (
-        this.video?.likes || "情報なし"
+        this.video?.primary_info?.menu?.top_level_buttons?.[0]
+          ?.short_like_count || "情報なし"
       );
     },
     subscriberCount() {
       return (
-        this.video?.author?.subscribers || "情報なし"
+        this.video?.secondary_info?.owner?.subscriber_count?.text || "情報なし"
       );
     },
     authorId() {
-      return this.video?.author?.id || "情報なし";
+      return this.video?.secondary_info?.owner?.author?.id || "情報なし";
     },
     authorName() {
-      return this.video?.author?.name || "情報なし";
+      return this.video?.secondary_info?.owner?.author?.name || "情報なし";
     },
     authorThumbnailUrl() {
       return (
-        this.video?.author?.thumbnail ||
+        this.video?.secondary_info?.owner?.author?.thumbnails?.[0]?.url ||
         "情報なし"
       );
     },
     descriptionText() {
-      return this.video?.description?.text || "情報なし";
+      return this.video?.secondary_info?.description?.text || "情報なし";
     },
     formattedDescription() {
       const rawText =
-        this.video?.description?.text ||
+        this.video?.secondary_info?.description?.text ||
         "この動画には説明が追加されていません。";
       return rawText
         .replace(/&/g, "&amp;")
@@ -250,39 +247,40 @@ export default {
     },
     descriptionRun0() {
       return (
-        this.video?.description?.run0 || "情報なし"
+        this.video?.secondary_info?.description?.runs?.[0]?.text || "情報なし"
       );
     },
     descriptionRun1() {
-      return this.video?.description?.run1 || "";
+      return this.video?.secondary_info?.description?.runs?.[1]?.text || "";
     },
     descriptionRun2() {
-      return this.video?.description?.run2 || "";
+      return this.video?.secondary_info?.description?.runs?.[2]?.text || "";
     },
     descriptionRun3() {
-      return this.video?.description?.run3 || "";
+      return this.video?.secondary_info?.description?.runs?.[3]?.text || "";
     },
     relatedVideos() {
-      const feed = this.video?.related || [];
+      const feed = this.video?.watch_next_feed || [];
       return feed.map((item) => {
+        const overlays = item.content_image?.overlays || [];
+        const badges = overlays[0]?.badges || [];
+        const badgeText = badges[0]?.text || "";
+        const previewUrl = overlays[1]?.thumbnail?.[0]?.url || "";
+        const metadataRows = item.metadata?.metadata?.metadata_rows || [];
 
         return {
-          base64imge:
-            item.thumbnail || "",
-          badge: 
-            item.badge || "",
-          title: 
-            item.title || "",
-          metadataRow1: 
-            item.channel,
+          badge: badgeText,
+          previewUrl,
+          title: item.metadata?.title?.text || "",
+          metadataRow1: metadataRows[0]?.metadata_parts?.[0]?.text?.text || "",
           metadataRow2Part1:
-            item.views || "",
+            metadataRows[1]?.metadata_parts?.[0]?.text?.text || "",
           metadataRow2Part2:
-            item.uploaded || "",
+            metadataRows[1]?.metadata_parts?.[1]?.text?.text || "",
           videoId:
-            item.videoId || "",
+            item.renderer_context?.command_context?.on_tap?.payload?.videoId || "",
           replaylistId:
-            item.playlistId || "",
+            item.renderer_context?.command_context?.on_tap?.payload?.playlistId || "",
         };
       });
     },
@@ -317,7 +315,7 @@ export default {
         try {
           this.video = null;
           this.error = null;
-          const res = await fetch(`${apiurl()}?video=${id}`);
+          const res = await fetch(`/api/video/${id}`);
           if (!res.ok) throw new Error(`動画取得エラー: HTTP ${res.status}`);
           this.video = await res.json();
           return;

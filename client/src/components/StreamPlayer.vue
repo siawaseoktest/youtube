@@ -101,7 +101,6 @@
 
 <script setup>
 import { ref, watch, onMounted, onBeforeUnmount, nextTick } from "vue";
-import { apiurl } from "@/api";
 import { setupSyncPlayback } from "@/components/syncPlayback";
 
 // props
@@ -191,7 +190,7 @@ async function fetchStreamUrl(id, streamType) {
     const Type = streamType || "1";
 
     if (Type === "2") {
-      const res = await fetch(`${apiurl()}?&stream2=${id}`);
+      const res = await fetch(`/api/stream/${id}/type2`);
       if (!res.ok) throw new Error(`type2 ストリーム取得失敗: ${res.status}`);
       const data = await res.json();
 
@@ -244,7 +243,7 @@ async function fetchStreamUrl(id, streamType) {
         );
       }
     } else if (Type === "3") {
-      const res = await fetch(`${apiurl()}?stream2=${id}`);
+      const res = await fetch(`/api/stream/${id}/type2`);
       if (!res.ok) throw new Error(`type3 ストリーム取得失敗: ${res.status}`);
       const data = await res.json();
       if (!data.muxed360p) throw new Error("Type3: muxed360p がありません");
@@ -260,7 +259,7 @@ async function fetchStreamUrl(id, streamType) {
         videoRef.value.play().catch(() => {});
       }
     } else {
-      const res = await fetch(`${apiurl()}?stream=${id}`);
+      const res = await fetch(`/api/stream/${id}`);
       if (!res.ok) throw new Error(`ストリーム取得失敗: ${res.status}`);
       const data = await res.json();
       if (!data.url) throw new Error("ストリームURLが空です");
