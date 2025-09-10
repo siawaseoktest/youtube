@@ -1,4 +1,5 @@
-# しあtube静的デプロイ用
+# youtube代替サイト
+開発中です(？)
 
 ## siatubeの展開方法
 
@@ -31,18 +32,5 @@ function doGet(e) {
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }
 ```
-### 4.	変換済みHTMLを index.html として追加
 
-  • 左上あたりにある「ファイル」の横の「+」ボタンをタップ → 「HTML」 → 名前を index にする
-
-  • 中身にコピーしたHTMLを貼り付ける
-
-### 5. Webアプリとしてデプロイ
-
-  •	メニュー → 「デプロイ」 → 「新しいデプロイ」
-
-  •	「種類を選択」 → 「Webアプリ」
-
-  •	「アクセスできるユーザー」 → 「全員（匿名ユーザー含む）」に設定
-
-  •	デプロイ → 公開URLが発行される
+静的デプロイ用[https://github.com/ajgpw/youtube.git](https://github.com/ajgpw/youtube.git)
