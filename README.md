@@ -1,48 +1,30 @@
-# しあtube静的デプロイ用
+````markdown
+# GAS Webアプリ デプロイ手順
 
-## siatubeの展開方法
-
-
-### 1. index.html の取得
-以下から `index.html` をコピーしてください。
-
-👉 https://github.com/ajgpw/youtube/tree/main/client/dist/index.html
-
-
-### 2. HTML の変換
-コピーしたHTMLを、以下のページに貼り付けて変換します。
-
-👉 https://ajgpw.github.io/%E3%81%97%E3%81%82tube/meker/
-
-変換後のHTMLをコピーしてください。
-
-
-### 3. Google Apps Script で展開
-1. https://script.google.com/ にアクセス
-2. 新しいプロジェクトを作成
-3.  `コード.gs` を以下に書き換える
+## コード
 
 ```javascript
-// Code.gs
-function doGet(e) {
-  return HtmlService
-    .createHtmlOutputFromFile('index')
-    .setTitle('siatube')
-    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+function doGet() {
+  const text = UrlFetchApp.fetch(
+    'https://raw.githubusercontent.com/ajgpw/youtube/refs/heads/main/index.html.txt'
+  ).getContentText();
+  return HtmlService.createHtmlOutput(text)
+                    .setTitle('しあtube')
+                    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }
+````
+
+## 手順
+
+1. Google Apps Script のエディタを開き、上記のコードを貼り付ける
+2. 右上の **「デプロイ」** をクリック
+3. **「新しいデプロイ」** を選択
+4. 種類から **「ウェブアプリ」** を選択
+5. 必要に応じて説明を入力し、アクセス権限を設定
+6. **「デプロイ」** をクリック
+7. 認証画面が出た場合は、指示に従って認証を完了
+8. デプロイ完了後に表示されるURLにアクセスすると、
+   GitHub 上の `index.html.txt` のHTMLが実行されます
+
 ```
-### 4.	変換済みHTMLを index.html として追加
-
-  • 左上あたりにある「ファイル」の横の「+」ボタンをタップ → 「HTML」 → 名前を index にする
-
-  • 中身にコピーしたHTMLを貼り付ける
-
-### 5. Webアプリとしてデプロイ
-
-  •	メニュー → 「デプロイ」 → 「新しいデプロイ」
-
-  •	「種類を選択」 → 「Webアプリ」
-
-  •	「アクセスできるユーザー」 → 「全員（匿名ユーザー含む）」に設定
-
-  •	デプロイ → 公開URLが発行される
+```
