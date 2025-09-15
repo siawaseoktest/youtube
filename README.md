@@ -1,4 +1,4 @@
-````markdown
+
 # GAS Webアプリ デプロイ手順
 
 ## コード
@@ -26,5 +26,4 @@ function doGet() {
 8. デプロイ完了後に表示されるURLにアクセスすると、
    GitHub 上の `index.html.txt` のHTMLが実行されます
 
-```
 ```
