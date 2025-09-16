@@ -26,4 +26,9 @@ function doGet() {
 8. デプロイ完了後に表示されるURLにアクセスすると、
    GitHub 上の `index.html.txt` のHTMLが実行されます
 
-```
+<span class="alt-titles">
+  <span class="tool-icons">
+    <img src="https://licensebuttons.net/l/by/4.0/88x31.png" alt="CC BY 4.0">
+  </span>
+</span>
+
