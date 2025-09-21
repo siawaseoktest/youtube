@@ -69,10 +69,8 @@
           <span>高評価数{{ likeCount }}</span>
           <span class="dot">　</span>
           <span>{{ relativeDate }}</span>
-          <div>
-            <div v-if="currentType === '1'" style="display:none;"></div>
-            <StreamPlayer v-if="currentType === '3'" :videoId="videoId" :streamType="'3'" />
-            <button @click="switchStream">この動画をダウンロードする</button>
+          <div style="padding-top: 10px;">
+            <StreamPlayer :videoId="videoId" :streamType="'3'" />
           </div>
         </div>
         <div class="video-description">

@@ -1,6 +1,6 @@
 {
-  "name": "my-app",
-  "version": "1.0.0",
+  "name": "siatube",
+  "version": "1.2.0",
   "type": "module",
   "engines": {
     "node": ">=20.0.0",
@@ -15,7 +15,9 @@
     "node-fetch": "^3.3.1",
     "youtubei.js": "^14.0.0",
     "ytpl": "github:Victiniiiii/ytpl",
-    "@distube/ytdl-core": "^4.16.12"
+    "@distube/ytdl-core": "^4.16.12",
+    "@ffmpeg/ffmpeg": "^0.12.10",
+    "@ffmpeg/util": "^0.12.0"
   },
   "devDependencies": {
     "concurrently": "^7.6.0"
