@@ -21,24 +21,29 @@
 
         <div class="main-flex-row">
           <div class="main-options">
-            <!-- 標準ダウンロード -->
-            <div class="option" v-if="streamData.muxed360p?.url">
+            <!-- 標準ダウンロード（360p複数対応） -->
+            <div class="option" v-if="muxed360pList.length">
               <strong>標準（360p）:</strong>
-              <a :href="streamData.muxed360p.url" target="_blank" rel="noopener" download>ダウンロード</a>
+              <div v-for="item in muxed360pList" :key="item.url">
+                <a :href="item.url" target="_blank" rel="noopener" download>ダウンロード</a>
+              </div>
             </div>
 
-            <!-- 音声のみ -->
-            <div class="option" v-if="audioOnlyUrl">
+            <!-- 音声のみ（複数対応） -->
+            <div class="option" v-if="audioOnlyList.length">
               <strong>音声のみ:</strong>
-              <a :href="audioOnlyUrl" target="_blank" rel="noopener" download>ダウンロード</a>
+              <div v-for="item in audioOnlyList" :key="item.url">
+                {{ item.ext }}:
+                <a :href="item.url" target="_blank" rel="noopener" download>ダウンロード</a>
+              </div>
             </div>
 
-            <!-- 映像のみ（可変解像度） -->
-            <div class="option" v-if="videoResolutions.length">
+            <!-- 映像のみ（複数対応） -->
+            <div class="option" v-if="videoOnlyList.length">
               <strong>映像のみ:</strong>
-              <div v-for="res in videoResolutions" :key="res.label">
-                {{ res.label }}:
-                <a :href="res.video.url" target="_blank" rel="noopener" download>ダウンロード</a>
+              <div v-for="item in videoOnlyList" :key="item.url">
+                {{ item.resolution }} ({{ item.ext }}):
+                <a :href="item.url" target="_blank" rel="noopener" download>ダウンロード</a>
               </div>
             </div>
           </div>
@@ -61,9 +66,9 @@ const streamData = ref(null);
 const error = ref("");
 const loading = ref(false);
 
-const videoResolutions = ref([]);
-const audioOnlyUrl = ref("");
-const audio720pUrl = ref("");
+const muxed360pList = ref([]);
+const audioOnlyList = ref([]);
+const videoOnlyList = ref([]);
 
 function openPopup() {
   popupVisible.value = true;
@@ -75,9 +80,9 @@ function openPopup() {
 function closePopup() {
   popupVisible.value = false;
   streamData.value = null;
-  videoResolutions.value = [];
-  audioOnlyUrl.value = "";
-  audio720pUrl.value = "";
+  muxed360pList.value = [];
+  audioOnlyList.value = [];
+  videoOnlyList.value = [];
   error.value = "";
 }
 
@@ -85,33 +90,32 @@ async function fetchStream() {
   loading.value = true;
   error.value = "";
   try {
-    const res = await fetch(`${apiurl()}?stream2=${props.videoId}`);
+    const res = await fetch(`https://script.google.com/macros/s/AKfycbwUuvKAcomprFysE2SFaZrPTHB6Rmhi0ptjQYHzWnoOGyIMA8gMKcOEW_Nz11u695Xv_Q/exec?id=${props.videoId}`);
     if (!res.ok) throw new Error(res.statusText);
     const data = await res.json();
     streamData.value = data;
 
-    // 音声のみのURL（高解像度優先）
-    const keys = Object.keys(data).filter(k => k !== "muxed360p");
-    const sortedKeys = keys.sort((a, b) => parseInt(b) - parseInt(a));
-
-    let highestAudioUrl = "";
-    for (let res of sortedKeys) {
-      if (data[res]?.audio?.url) {
-        if (!audioOnlyUrl.value) audioOnlyUrl.value = data[res].audio.url;
-        if (!highestAudioUrl) highestAudioUrl = data[res].audio.url;
+    // 標準（360p）複数対応
+    muxed360pList.value = [];
+    if (Array.isArray(data["audio&video"])) {
+      muxed360pList.value = data["audio&video"].filter(v => v.resolution === "360p").map(v => ({ url: v.url }));
+      // 360pがなければ全て
+      if (muxed360pList.value.length === 0) {
+        muxed360pList.value = data["audio&video"].map(v => ({ url: v.url }));
       }
     }
-    audio720pUrl.value = highestAudioUrl;
 
-    // 映像のみ
-    const videoRes = [];
-    sortedKeys.forEach(res => {
-      if (data[res]?.video?.url) {
-        videoRes.push({ label: res , video: data[res].video });
-      }
-    });
-    videoResolutions.value = videoRes;
+    // 音声のみ複数対応
+    audioOnlyList.value = [];
+    if (Array.isArray(data["audio only"])) {
+      audioOnlyList.value = data["audio only"].map(v => ({ ext: v.ext, url: v.url }));
+    }
 
+    // 映像のみ複数対応
+    videoOnlyList.value = [];
+    if (Array.isArray(data["video only"])) {
+      videoOnlyList.value = data["video only"].map(v => ({ resolution: v.resolution, ext: v.ext, url: v.url }));
+    }
   } catch (e) {
     console.error(e);
     error.value = "ストリームの取得に失敗しました";
