@@ -3,12 +3,31 @@
     ⚠️ {{ error }}
     <button @click="reloadStream" class="reload-button">再取得</button>
   </div>
-  <div v-else-if="selectedQuality && (sources.muxed360p || availableQualities.length > 0)" class="video-container">
-    <template v-if="selectedQuality === 'muxed360p'">
-      <video ref="videoRef" controls autoplay>
-        <source :src="sources.muxed360p?.url" :type="sources.muxed360p?.mimeType" />
-      </video>
+  <div v-else-if="selectedQuality && availableQualities.length > 0" class="video-container">
+    <!-- Appleデバイス: m3u8のみ -->
+    <template v-if="isAppleDevice()">
+      <video
+        ref="videoRef"
+        controls
+        autoplay
+        :src="sources[selectedQuality]?.url"
+        type="application/x-mpegURL"
+        :key="sources[selectedQuality]?.url"
+      ></video>
+      <div class="settings-box" v-show="settingsVisible">
+        <label>
+          画質:
+          <select v-model="selectedQuality" class="selector">
+            <option v-for="q in availableQualities" :key="q" :value="q">
+              {{ q.replace('p', '') }}p
+            </option>
+          </select>
+        </label>
+        <button @click="reloadStream" class="reload-button">再読込み</button>
+      </div>
+      <div v-if="isQualitySwitching" class="block-overlay" aria-hidden="true"></div>
     </template>
+    <!-- その他: videourlのみ -->
     <template v-else>
       <video ref="videoRef" preload="auto" controls>
         <source :src="sources[selectedQuality]?.video?.url" :type="sources[selectedQuality]?.video?.mimeType" />
@@ -16,28 +35,27 @@
       <audio ref="audioRef" preload="auto" style="display:none;">
         <source :src="sources[selectedQuality]?.audio?.url" :type="sources[selectedQuality]?.audio?.mimeType" />
       </audio>
+      <div class="settings-box" v-show="settingsVisible">
+        <label>
+          画質:
+          <select v-model="selectedQuality" class="selector">
+            <option v-for="q in availableQualities" :key="q" :value="q">
+              {{ q.replace('p', '') }}p
+            </option>
+          </select>
+        </label>
+        <label>
+          再生速度:
+          <select v-model.number="selectedPlaybackRate" class="selector">
+            <option v-for="rate in playbackRates" :key="rate" :value="rate">
+              {{ rate }}x
+            </option>
+          </select>
+        </label>
+        <button @click="reloadStream" class="reload-button">再読込み</button>
+      </div>
+      <div v-if="isQualitySwitching" class="block-overlay" aria-hidden="true"></div>
     </template>
-    <div class="settings-box" v-show="settingsVisible">
-      <label>
-        画質:
-        <select v-model="selectedQuality" class="selector">
-          <option value="muxed360p" v-if="sources.muxed360p">通常</option>
-          <option v-for="q in availableQualities" :key="q" :value="q">
-            {{ q.replace('p', '') }}p
-          </option>
-        </select>
-      </label>
-      <label>
-        再生速度:
-        <select v-model.number="selectedPlaybackRate" class="selector">
-          <option v-for="rate in playbackRates" :key="rate" :value="rate">
-            {{ rate }}x
-          </option>
-        </select>
-      </label>
-      <button @click="reloadStream" class="reload-button">再読込み</button>
-    </div>
-    <div v-if="isQualitySwitching" class="block-overlay" aria-hidden="true"></div>
   </div>
   <div v-else-if="loading" style="height: 50px">読み込み中...</div>
 </template>
@@ -67,10 +85,15 @@ const settingsVisible = ref(true);
 const loading = ref(false);
 const isQualitySwitching = ref(false);
 
+function isAppleDevice() {
+  const ua = navigator.userAgent;
+  return /iPhone|iPad|Macintosh/.test(ua);
+}
+
 async function fetchStreamUrl(id) {
   error.value = "";
   sources.value = {};
-  selectedQuality.value = "muxed360p";
+  selectedQuality.value = "";
   selectedPlaybackRate.value = 1.0;
   diffText.value = "0";
   availableQualities.value = [];
@@ -79,36 +102,93 @@ async function fetchStreamUrl(id) {
     const res = await fetch(`${apiurl()}?&stream2=${id}`);
     if (!res.ok) throw new Error(`type2 ストリーム取得失敗: ${res.status}`);
     const data = await res.json();
-    const srcs = {};
-    const qualities = [];
-    if (data.muxed360p) {
-      srcs.muxed360p = {
-        url: data.muxed360p.url,
-        mimeType: data.muxed360p.mimeType
-      };
+    let srcs = {};
+    let qualities = [];
+    let m3u8srcs = {};
+    let m3u8Qualities = [];
+    if (Array.isArray(data.videourl)) {
+      data.videourl.forEach((item) => {
+        const key = Object.keys(item)[0];
+        if (/^\d{3,4}p$/.test(key)) {
+          qualities.push(key);
+          srcs[key] = {
+            video: {
+              url: item[key].video.url,
+              mimeType: "video/mp4"
+            },
+            audio: {
+              url: item[key].audio.url,
+              mimeType: "audio/webm"
+            }
+          };
+        }
+      });
+    } else if (typeof data.videourl === 'object' && data.videourl !== null) {
+      Object.keys(data.videourl).forEach((key) => {
+        if (/^\d{3,4}p$/.test(key)) {
+          qualities.push(key);
+          srcs[key] = {
+            video: {
+              url: data.videourl[key].video.url,
+              mimeType: "video/mp4"
+            },
+            audio: {
+              url: data.videourl[key].audio.url,
+              mimeType: "audio/webm"
+            }
+          };
+        }
+      });
     }
-    Object.keys(data).forEach((key) => {
-      if (/^\d{3,4}p$/.test(key)) {
-        qualities.push(key);
-        srcs[key] = {
-          video: {
-            url: data[key].video.url,
-            mimeType: data[key].video.mimeType
-          },
-          audio: {
-            url: data[key].audio.url,
-            mimeType: data[key].audio.mimeType
-          }
-        };
-      }
-    });
-    availableQualities.value = qualities.sort((a, b) => parseInt(b) - parseInt(a));
-    sources.value = srcs;
-    if (selectedQuality.value !== "muxed360p" && qualities.length > 0) {
-      selectedQuality.value = qualities[0];
+    if (Array.isArray(data.m3u8)) {
+      data.m3u8.forEach((item) => {
+        const key = Object.keys(item)[0];
+        if (/^\d{3,4}p$/.test(key)) {
+          let m3u8url = item[key].url;
+          if (typeof m3u8url === 'object' && m3u8url.url) m3u8url = m3u8url.url;
+          m3u8Qualities.push(key);
+          m3u8srcs[key] = {
+            url: m3u8url,
+            mimeType: "application/x-mpegURL"
+          };
+        }
+      });
+    } else if (typeof data.m3u8 === 'object' && data.m3u8 !== null) {
+      Object.keys(data.m3u8).forEach((key) => {
+        if (/^\d{3,4}p$/.test(key)) {
+          let m3u8url = data.m3u8[key].url;
+          if (typeof m3u8url === 'object' && m3u8url.url) m3u8url = m3u8url.url;
+          m3u8Qualities.push(key);
+          m3u8srcs[key] = {
+            url: m3u8url,
+            mimeType: "application/x-mpegURL"
+          };
+        }
+      });
+    }
+    // 画質の降順ソート
+    qualities = qualities.sort((a, b) => parseInt(b) - parseInt(a));
+    m3u8Qualities = m3u8Qualities.sort((a, b) => parseInt(b) - parseInt(a));
+    // デフォルト画質選び
+    const defaultQuality = ["1080p", "720p", "480p"].find(q => qualities.includes(q)) || qualities[0];
+    const defaultM3u8Quality = ["1080p", "720p", "480p"].find(q => m3u8Qualities.includes(q)) || m3u8Qualities[0];
+    // Appleデバイスの場合はm3u8で再生
+    if (isAppleDevice() && m3u8Qualities.length > 0) {
+      sources.value = m3u8srcs;
+      availableQualities.value = m3u8Qualities;
+      selectedQuality.value = defaultM3u8Quality;
+    } else if (qualities.length > 0) {
+      sources.value = srcs;
+      availableQualities.value = qualities;
+      selectedQuality.value = defaultQuality;
+    } else {
+      error.value = "利用可能なストリームがありません。";
+      loading.value = false;
+      return;
     }
     await nextTick();
-    if (selectedQuality.value !== "muxed360p") {
+    // 同期再生
+    if (!isAppleDevice() && selectedQuality.value && srcs[selectedQuality.value]) {
       setupSyncPlayback(
         videoRef.value,
         audioRef.value,
@@ -156,10 +236,15 @@ function clearType2SrcRepeated() {
 }
 
 watch(selectedQuality, () => {
-  if (
-    selectedQuality.value !== "muxed360p" &&
-    sources.value[selectedQuality.value]
-  ) {
+  if (isAppleDevice()) {
+    isQualitySwitching.value = true;
+    setTimeout(() => {
+      isQualitySwitching.value = false;
+    }, 1000);
+    return;
+  }
+  // その他: videourl同期再生
+  if (sources.value[selectedQuality.value]) {
     isQualitySwitching.value = true;
     setTimeout(() => {
       isQualitySwitching.value = false;
