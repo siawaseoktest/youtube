@@ -320,7 +320,7 @@ watch(selectedQuality, () => {
 }
 .reload-button {
   margin-top: 6px;
-  padding: 6px 12px;
+  padding: 6px 15px;
   font-size: 9px;
   background: #444;
   color: white;
@@ -328,7 +328,7 @@ watch(selectedQuality, () => {
   border-radius: 6px;
   cursor: pointer;
   transition: background-color 0.2s ease;
-  width: 50%;
+  width: 60%;
 }
 .reload-button:hover {
   background: #666;

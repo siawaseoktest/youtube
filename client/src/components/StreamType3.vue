@@ -17,7 +17,7 @@
       </div>
 
       <div v-else>
-        <h3>ダウンロードオプション</h3>
+        <h3>ダウンロードオプション ID={{props.videoId}}</h3>
 
         <div class="main-flex-row">
           <div class="main-options">

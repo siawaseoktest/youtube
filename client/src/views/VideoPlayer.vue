@@ -405,7 +405,7 @@ export default {
 
 .custom-dropdown {
   position: relative;
-  background: #f0f0f0;
+  background: #ffff3579;
   padding: 0.5rem 1rem;
   border-radius: 6px;
   cursor: pointer;
