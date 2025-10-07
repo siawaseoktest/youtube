@@ -103,7 +103,7 @@ onMounted(async () => {
   error.value = false;
 
   try {
-    const res = await fetch(`${apiurl()}?playlist=${playlistId.value}`);
+    const res = await fetch(`/api/playlist/${playlistId.value}`);
     if (!res.ok) throw new Error(`HTTPエラー: ${res.status}`);
     playlist.value = await res.json();
 

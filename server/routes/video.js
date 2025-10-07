@@ -13,26 +13,30 @@ let youtube;
 })();
 
 // 環境によっては(殆ど)エラーで動かないので一切形成しません
+// /:id で外部APIにリクエストし、JSONをそのまま返す
 router.get("/:id", async (req, res) => {
   const videoId = req.params.id;
-
   if (!videoId) {
     return res.status(400).json({ error: "無効な動画IDです。" });
   }
-
+  const mainUrl = `https://siawaseok.duckdns.org/api/video2/${videoId}`;
+  const fallbackUrl = `https://siatube.wjg.jp/api/video2/${videoId}`;
   try {
-    if (!youtube) {
-      return res.status(503).json({ error: "YouTubeクライアントが未初期化です。" });
-    }
-
-    // 動画情報全体を取得
-    const videoInfo = await youtube.getInfo(videoId);
-
-    // 取得した動画情報をJSONとして直接返す
-    res.json(videoInfo);
+    const response = await fetch(mainUrl);
+    if (!response.ok) throw new Error("main server error");
+    const json = await response.json();
+    return res.json(json);
   } catch (err) {
-    console.error(`[ERROR][${videoId}]`, err);
-    res.status(500).json({ error: "動画情報の取得に失敗しました。" });
+    console.error("video: main server failed, fallbackへ", err.message);
+    try {
+      const response = await fetch(fallbackUrl);
+      if (!response.ok) throw new Error("fallback server error");
+      const json = await response.json();
+      return res.json(json);
+    } catch (err2) {
+      console.error("video: fallbackも失敗", err2.message);
+      return res.status(500).json({ error: "video: 両方のサーバーで取得失敗" });
+    }
   }
 });
 

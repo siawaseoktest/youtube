@@ -36,7 +36,7 @@ async function fetchStreamUrl(id) {
   error.value = "";
   loading.value = true;
   try {
-    const res = await fetch(`${apiurl()}?stream=${id}`);
+    const res = await fetch(`/api/stream/${id}`);
     if (!res.ok) throw new Error(`ストリーム取得失敗: ${res.status}`);
     const data = await res.json();
     if (!data.url) throw new Error("ストリームURLが空です");

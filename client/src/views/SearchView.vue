@@ -54,7 +54,7 @@ export default {
       this.error = null;
 
       try {
-        const res = await fetch(`${apiurl()}?q=${encodeURIComponent(q)}`);
+        const res = await fetch(`/api/search?q=${encodeURIComponent(q)}`);
         if (!res.ok) throw new Error("検索APIでエラーが発生しました");
         const data = await res.json();
         this.videos = data.results || [];

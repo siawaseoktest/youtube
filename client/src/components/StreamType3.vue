@@ -90,7 +90,7 @@ async function fetchStream() {
   loading.value = true;
   error.value = "";
   try {
-    const res = await fetch(`https://script.google.com/macros/s/AKfycbwUuvKAcomprFysE2SFaZrPTHB6Rmhi0ptjQYHzWnoOGyIMA8gMKcOEW_Nz11u695Xv_Q/exec?id=${props.videoId}`);
+    const res = await fetch(`/api/stream/${props.videoId}/type3`);
     if (!res.ok) throw new Error(res.statusText);
     const data = await res.json();
     streamData.value = data;

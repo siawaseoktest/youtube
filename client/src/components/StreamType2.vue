@@ -99,7 +99,7 @@ async function fetchStreamUrl(id) {
   availableQualities.value = [];
   loading.value = true;
   try {
-    const res = await fetch(`${apiurl()}?&stream2=${id}`);
+    const res = await fetch(`/api/stream/${id}/type2`);
     if (!res.ok) throw new Error(`type2 ストリーム取得失敗: ${res.status}`);
     const data = await res.json();
     let srcs = {};

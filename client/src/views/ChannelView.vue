@@ -171,7 +171,7 @@ export default {
 
     async function fetchChannelInfo(channelId) {
       try {
-        const res = await fetch(`${apiurl()}?channel=${channelId}`);
+        const res = await fetch(`/api/channel/${channelId}`);
         if (!res.ok) throw new Error("チャンネル情報取得失敗");
         const data = await res.json();
         channel.value = data;
