@@ -1,25 +1,3 @@
-import express from "express";
-import https from "https";
-import ytdl from "@distube/ytdl-core";
-
-const router = express.Router();
-
-const CONFIG_URL =
-  "https://raw.githubusercontent.com/siawaseok3/wakame/master/video_config.json";
-const CACHE_DURATION_MS = 60 * 1000;
-
-const configCacheMap = new Map(); // url => { data, timestamp }
-
-function validateYouTubeId(req, res, next) {
-  const { id } = req.params;
-  if (!/^[\w-]{11}$/.test(id)) {
-    return res.status(400).json({
-      error: "不正なID形式です（11文字のYouTube Video IDが必要です）",
-    });
-  }
-  next();
-}
-
 // 設定ファイル取得 + キャッシュ
 function fetchConfigJson(url) {
   const now = Date.now();
@@ -51,55 +29,26 @@ function fetchConfigJson(url) {
       .on("error", (err) => reject(err));
   });
 }
+import express from "express";
+import https from "https";
+import ytdl from "@distube/ytdl-core";
 
-// Fallback 用リクエスト関数
-function fallbackRequest(videoId, userCookie, userIp) {
-  return new Promise((resolve, reject) => {
-    const options = {
-      hostname: "siawaseok.duckdns.org",
-      port: 443,
-      path: `/api/streamurl/${videoId}`,
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        Cookie: userCookie || "",
-        "X-Forwarded-For": userIp || "",
-      },
-    };
+const router = express.Router();
 
-    console.log("🔁 fallbackRequest: siawaseokサーバーにリクエスト送信");
+const CONFIG_URL =
+  "https://raw.githubusercontent.com/siawaseok3/wakame/master/video_config.json";
+const CACHE_DURATION_MS = 60 * 1000;
 
-    const req = https.request(options, (res2) => {
-      let data = "";
+const configCacheMap = new Map();
 
-      res2.on("data", (chunk) => (data += chunk));
-      res2.on("end", () => {
-
-        if (res2.statusCode !== 200) {
-          return reject(new Error(`Fallback failed with status ${res2.statusCode}`));
-        }
-
-        try {
-          const json = JSON.parse(data);
-          resolve(json);
-        } catch (e) {
-          console.error("fallbackResponse JSON parse error:", e.message);
-          reject(new Error("JSONのパースに失敗しました (fallback)"));
-        }
-      });
+function validateYouTubeId(req, res, next) {
+  const { id } = req.params;
+  if (!/^[\w-]{11}$/.test(id)) {
+    return res.status(400).json({
+      error: "不正なID形式です（11文字のYouTube Video IDが必要です）",
     });
-
-    req.on("error", (e) => {
-      console.error("fallbackRequest ネットワークエラー:", e.message);
-      reject(e);
-    });
-
-    req.setTimeout(5000, () => {
-      req.destroy(new Error("Fallback request timed out"));
-    });
-
-    req.end();
-  });
+  }
+  next();
 }
 
 
@@ -118,68 +67,55 @@ router.get("/:id", validateYouTubeId, async (req, res) => {
   }
 });
 
-// type2：動画ストリーム取得
+// type2：外部APIへリクエストしてJSONをそのまま返す
 router.get("/:id/type2", validateYouTubeId, async (req, res) => {
   const { id } = req.params;
-  const userCookie = req.headers.cookie || "";
-  const userIp = req.headers["x-forwarded-for"] || req.ip;
-
-  // WebM 映像 itag 一覧（video-only）
-  const webmItags = {
-    "4320p": 272,
-    "2160p": 266,
-    "1440p": 264,
-    "1080p": 248,
-    "720p": 247,
-    "480p": 244,
-  };
+  const mainUrl = `https://siawaseok.duckdns.org/api/stream/${id}/type2`;
+  const fallbackUrl = `https://siatube.wjg.jp/api/stream/${id}/type2`;
 
   try {
-    const info = await ytdl.getInfo(`https://www.youtube.com/watch?v=${id}`);
-    const formats = info.formats;
-
-    // 映像＋音声の360p（muxed）
-    const muxed360p = formats
-      .filter(f => f.hasVideo && f.hasAudio && f.height === 360)
-      .sort((a, b) => (b.bitrate || 0) - (a.bitrate || 0))[0];
-
-    // 音声のみ（最高音質1つ）
-    const audioOnly = formats
-      .filter(f => f.hasAudio && !f.hasVideo)
-      .sort((a, b) => (b.audioBitrate || 0) - (a.audioBitrate || 0))[0];
-
-    // WebM映像（itag指定）
-    const resolutionMap = {};
-    for (const [label, itag] of Object.entries(webmItags)) {
-      const video = formats.find(f => f.itag === itag && f.container === "webm");
-      if (video) {
-        resolutionMap[label] = {
-          video: { url: video.url },
-          audio: { url: audioOnly?.url || null },
-        };
-      }
-    }
-
-    // レスポンス生成
-    return res.json({
-      muxed360p: { url: muxed360p?.url || null },
-      ...resolutionMap,
-    });
+    const response = await fetch(mainUrl);
+    if (!response.ok) throw new Error("main server error");
+    const json = await response.json();
+    return res.json(json);
   } catch (err) {
-    console.error("ストリームURLの取得に失敗:", err.stack || err.message);
-
+    console.error("type2: main server failed, fallbackへ", err.message);
     try {
-      const fallbackResult = await fallbackRequest(id, userCookie, userIp);
-      return res.json(fallbackResult);
-    } catch (fallbackErr) {
-      console.error("フェールオーバー失敗:", fallbackErr.stack || fallbackErr.message);
-      return res.status(500).json({
-        error: "ストリームURLの取得に失敗しました（fallback含む）。",
-      });
+      const response = await fetch(fallbackUrl);
+      if (!response.ok) throw new Error("fallback server error");
+      const json = await response.json();
+      return res.json(json);
+    } catch (err2) {
+      console.error("type2: fallbackも失敗", err2.message);
+      return res.status(500).json({ error: "type2: 両方のサーバーで取得失敗" });
     }
   }
 });
 
+// type3：外部APIへリクエストしてJSONをそのまま返す
+router.get("/:id/type3", validateYouTubeId, async (req, res) => {
+  const { id } = req.params;
+  const mainUrl = `https://siawaseok.duckdns.org/api/stream/download/${id}`;
+  const fallbackUrl = `https://siatube.wjg.jp/api/stream/download/${id}`;
+
+  try {
+    const response = await fetch(mainUrl);
+    if (!response.ok) throw new Error("main server error");
+    const json = await response.json();
+    return res.json(json);
+  } catch (err) {
+    console.error("type3: main server failed, fallbackへ", err.message);
+    try {
+      const response = await fetch(fallbackUrl);
+      if (!response.ok) throw new Error("fallback server error");
+      const json = await response.json();
+      return res.json(json);
+    } catch (err2) {
+      console.error("type3: fallbackも失敗", err2.message);
+      return res.status(500).json({ error: "type3: 両方のサーバーで取得失敗" });
+    }
+  }
+});
 // キャッシュ削除
 router.post("/admin/invalidate-cache", express.json(), (req, res) => {
   const { url } = req.body;
