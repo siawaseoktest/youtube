@@ -12,7 +12,6 @@ let youtube;
   });
 })();
 
-// 環境によっては(殆ど)エラーで動かないので一切形成しません
 // /:id で外部APIにリクエストし、JSONをそのまま返す
 router.get("/:id", async (req, res) => {
   const videoId = req.params.id;
