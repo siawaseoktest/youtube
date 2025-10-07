@@ -7,15 +7,10 @@
 </template>
 
 <script setup>
-<<<<<<< HEAD
-import { ref, watch, onMounted, onBeforeUnmount, nextTick } from "vue";
-import { setupSyncPlayback } from "@/components/syncPlayback";
-=======
 import { ref, watch, onMounted } from "vue";
 import StreamType1 from "./StreamType1.vue";
 import StreamType2 from "./StreamType2.vue";
 import StreamType3 from "./StreamType3.vue";
->>>>>>> 54e593e0086e9159b9f7806dfc2a432e30786130
 
 // props
 const props = defineProps({
@@ -29,146 +24,6 @@ function reloadStream() {
   // 各子コンポーネントで再取得用に渡すだけ
 }
 
-<<<<<<< HEAD
-async function fetchStreamUrl(id, streamType) {
-  streamUrl.value = "";
-  error.value = "";
-  streamType2.value = false;
-  sources.value = {};
-  selectedQuality.value = "muxed360p";
-  selectedPlaybackRate.value = 1.0;
-  diffText.value = "0";
-  availableQualities.value = [];
-  loading.value = true;
-
-  try {
-    const Type = streamType || "1";
-
-    if (Type === "2") {
-      const res = await fetch(`/api/stream/${id}/type2`);
-      if (!res.ok) throw new Error(`type2 ストリーム取得失敗: ${res.status}`);
-      const data = await res.json();
-
-      const srcs = {};
-      const qualities = [];
-
-      if (data.muxed360p) {
-        srcs.muxed360p = {
-          url: data.muxed360p.url,
-          mimeType: data.muxed360p.mimeType
-        };
-      }
-
-      Object.keys(data).forEach((key) => {
-        if (/^\d{3,4}p$/.test(key)) {
-          qualities.push(key);
-          srcs[key] = {
-            video: {
-              url: data[key].video.url,
-              mimeType: data[key].video.mimeType
-            },
-            audio: {
-              url: data[key].audio.url,
-              mimeType: data[key].audio.mimeType
-            }
-          };
-        }
-      });
-
-      availableQualities.value = qualities.sort(
-        (a, b) => parseInt(b) - parseInt(a)
-      );
-      sources.value = srcs;
-
-      if (selectedQuality.value !== "muxed360p" && qualities.length > 0) {
-        selectedQuality.value = qualities[0];
-      }
-
-      streamType2.value = true;
-
-      await nextTick();
-      if (selectedQuality.value !== "muxed360p") {
-        setupSyncPlayback(
-          videoRef.value,
-          audioRef.value,
-          sources,
-          selectedQuality,
-          diffText,
-          selectedPlaybackRate
-        );
-      }
-    } else if (Type === "3") {
-      const res = await fetch(`/api/stream/${id}/type2`);
-      if (!res.ok) throw new Error(`type3 ストリーム取得失敗: ${res.status}`);
-      const data = await res.json();
-      if (!data.muxed360p) throw new Error("Type3: muxed360p がありません");
-      streamUrl.value = data.muxed360p.url;
-      sources.value.muxed360p = { url: streamUrl.value, mimeType: data.muxed360p.mimeType };
-
-      selectedQuality.value = "muxed360p";
-      streamType2.value = false;
-
-      await nextTick();
-      if (videoRef.value) {
-        videoRef.value.requestFullscreen().catch(() => {});
-        videoRef.value.play().catch(() => {});
-      }
-    } else {
-      const res = await fetch(`/api/stream/${id}`);
-      if (!res.ok) throw new Error(`ストリーム取得失敗: ${res.status}`);
-      const data = await res.json();
-      if (!data.url) throw new Error("ストリームURLが空です");
-      streamUrl.value = data.url;
-    }
-
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  } catch (err) {
-    console.error("取得エラー:", err);
-    error.value = "ストリームURLの取得に失敗しました。";
-  } finally {
-    loading.value = false;
-  }
-}
-
-// Cookie監視
-function watchStreamTypeCookie() {
-  cookieWatchInterval = setInterval(() => {
-    const cookieType = getCookieSafe("StreamType");
-    if (!props.streamType && cookieType !== currentStreamType.value) {
-      currentStreamType.value = cookieType || "1";
-    }
-  }, 1000);
-}
-
-// 設定自動非表示
-function resetSettingsVisibility() {
-  settingsVisible.value = true;
-  if (visibilityTimer) clearTimeout(visibilityTimer);
-  visibilityTimer = setTimeout(() => {
-    settingsVisible.value = false;
-  }, 3000);
-}
-
-function setupAutoHide() {
-  ["mousemove", "click", "touchstart"].forEach((event) => {
-    window.addEventListener(event, resetSettingsVisibility);
-  });
-}
-
-function removeAutoHide() {
-  ["mousemove", "click", "touchstart"].forEach((event) => {
-    window.removeEventListener(event, resetSettingsVisibility);
-  });
-}
-
-// 再生速度変更
-watch(selectedPlaybackRate, () => {
-  if (videoRef.value) videoRef.value.playbackRate = selectedPlaybackRate.value;
-});
-
-// props変更追従
-=======
->>>>>>> 54e593e0086e9159b9f7806dfc2a432e30786130
 watch(
   () => props.streamType,
   (newType) => {
