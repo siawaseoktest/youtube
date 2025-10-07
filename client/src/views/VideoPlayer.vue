@@ -315,7 +315,7 @@ export default {
         try {
           this.video = null;
           this.error = null;
-          const res = await fetch(`${apiurl()}?video=${id}`);
+          const res = await fetch(`/api/video/${id}`);
           if (!res.ok) throw new Error(`動画取得エラー: HTTP ${res.status}`);
           this.video = await res.json();
           return;
