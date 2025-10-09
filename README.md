@@ -27,8 +27,8 @@ function doGet() {
    GitHub 上の `index.html.txt` のHTMLが実行されます
 
 
-<br>
-siatube.web@gmail.com
-<br>
-  <a href="utm_source=invitation&utm_medium=link_copy&utm_campaign=default" target="_blank" rel="noopener noreferrer">オープンチャット</a>
 
+siatube.web@gmail.com
+
+
+[LINEオープンチャットに参加する](https://line.me/ti/g2/vCj1dWEoRZTALbC0n1w53si3-KJ8OTXnfjV6aw?utm_source=invitation&utm_medium=link_copy&utm_campaign=default)
