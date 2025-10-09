@@ -30,5 +30,5 @@ function doGet() {
 <br>
 siatube.web@gmail.com
 <br>
-[オープンチャット](https://line.me/ti/g2/vCj1dWEoRZTALbC0n1w53si3-KJ8OTXnfjV6aw?utm_source=invitation&utm_medium=link_copy&utm_campaign=default)
+(オープンチャット)[https://line.me/ti/g2/vCj1dWEoRZTALbC0n1w53si3-KJ8OTXnfjV6aw?utm_source=invitation&utm_medium=link_copy&utm_campaign=default]
 
