@@ -30,5 +30,5 @@ function doGet() {
 <br>
 siatube.web@gmail.com
 <br>
-  <a href="utm_source=invitation&utm_medium=link_copy&utm_campaign=default">オープンチャット</a>
+  <a href="utm_source=invitation&utm_medium=link_copy&utm_campaign=default" target="_blank" rel="noopener noreferrer">オープンチャット</a>
 
