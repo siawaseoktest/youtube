@@ -16,7 +16,7 @@ function doGet() {
 
 ## 手順
 
-1. Google Apps Script のエディタを開き、上記のコードを貼り付ける (デプロイしても真っ白な画面になってしまう場合は”https://raw.githubusercontent.com/ajgpw/youtube/refs/heads/main/index.html.txt ” を"https://raw.githubusercontent.com/ajgpw/ajgpw.github.io/refs/heads/main/%E3%81%97%E3%81%82tube/index.html "に置き換えて再度デプロイしてください
+1. Google Apps Script のエディタを開き、既存のコードを上書きする形で上記のコードを貼り付ける (デプロイしても真っ白な画面になってしまう場合は”https://raw.githubusercontent.com/ajgpw/youtube/refs/heads/main/index.html.txt ” を"https://raw.githubusercontent.com/ajgpw/ajgpw.github.io/refs/heads/main/%E3%81%97%E3%81%82tube/index.html "に置き換えて再度デプロイしてください
 2. 右上の **「デプロイ」** をクリック
 3. **「新しいデプロイ」** を選択
 4. 種類から **「ウェブアプリ」** を選択
