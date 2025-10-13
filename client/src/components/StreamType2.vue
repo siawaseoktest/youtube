@@ -81,7 +81,6 @@ const playbackRates = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2, 3, 4];
 const diffText = ref("0");
 const videoRef = ref(null);
 const audioRef = ref(null);
-const settingsVisible = ref(true);
 const loading = ref(false);
 const isQualitySwitching = ref(false);
 
@@ -278,6 +277,32 @@ watch(selectedQuality, () => {
     });
   }
 });
+
+// 設定ボックスの管理
+const settingsVisible = ref(false); 
+let hideTimeout = null;
+
+function showSettingsBox() {
+  settingsVisible.value = true;
+  if (hideTimeout) clearTimeout(hideTimeout);
+
+  // 5秒後に自動で非表示
+  hideTimeout = setTimeout(() => {
+    settingsVisible.value = false;
+  }, 5000);
+}
+
+onMounted(() => {
+  if (videoRef.value) {
+    videoRef.value.addEventListener('mousemove', showSettingsBox);
+    videoRef.value.addEventListener('click', showSettingsBox);
+  }
+
+  window.addEventListener('mousemove', showSettingsBox);
+  window.addEventListener('click', showSettingsBox);
+  window.addEventListener('scroll', showSettingsBox);
+});
+
 </script>
 
 <style scoped>
