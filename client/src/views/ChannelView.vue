@@ -169,15 +169,39 @@ export default {
       }
     }
 
-    async function fetchChannelInfo(channelId) {
-      try {
-        const res = await fetch(`${apiurl()}?channel=${channelId}`);
-        if (!res.ok) throw new Error("チャンネル情報取得失敗");
-        const data = await res.json();
-        channel.value = data;
-      } catch (err) {
-        console.error("ChannelView エラー:", err);
+    function fetchChannelInfo(channelId) {
+      // JSONP で取得する
+      const cbName = 'jsonp_ch_' + Math.random().toString(36).slice(2, 10);
+      let timeoutId;
+
+      window[cbName] = function(data) {
+        clearTimeout(timeoutId);
+        try {
+          channel.value = data;
+        } catch (e) {
+          console.error('ChannelView JSONP parse error', e);
+        }
+        cleanup();
+      };
+
+      function cleanup() {
+        if (script.parentNode) script.parentNode.removeChild(script);
+        delete window[cbName];
       }
+
+      timeoutId = setTimeout(() => {
+        console.error('ChannelView: チャンネル情報取得タイムアウト');
+        cleanup();
+      }, 30000);
+
+      const script = document.createElement('script');
+      script.src = `${apiurl()}?channel=${channelId}&callback=${cbName}`;
+      script.onerror = function() {
+        clearTimeout(timeoutId);
+        console.error('ChannelView: チャンネル情報取得に失敗しました (script error)');
+        cleanup();
+      };
+      document.body.appendChild(script);
     }
 
     onMounted(() => {

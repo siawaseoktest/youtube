@@ -103,39 +103,65 @@ onMounted(async () => {
   error.value = false;
 
   try {
-    const res = await fetch(`${apiurl()}?playlist=${playlistId.value}`);
-    if (!res.ok) throw new Error(`HTTPエラー: ${res.status}`);
-    playlist.value = await res.json();
+    // JSONP 用ランダムコールバック
+    const cbName = 'jsonp_playlist_' + Math.random().toString(36).slice(2, 10);
+    let timeoutId;
+    const script = document.createElement('script');
 
-    console.log("取得プレイリスト:", playlist.value);
-    console.log("表示タイプ:", displayType.value);
+    window[cbName] = (data) => {
+      clearTimeout(timeoutId);
+      try {
+        playlist.value = data;
+        console.log("取得プレイリスト:", playlist.value);
+        console.log("表示タイプ:", displayType.value);
 
-    if (displayType.value !== "watch" && displayType.value !== "channel" && playlist.value?.title) {
-      document.title = `${playlist.value.title} - プレイリスト`;
-    }
-
-    await nextTick();
-
-    // 中央にスクロール
-    if (playVideoId.value && scrollContainer.value) {
-      const containerEl = scrollContainer.value;
-      const target = containerEl.querySelector(`.playlist-item[data-video-id="${playVideoId.value}"]`);
-
-      if (target) {
-        const containerRect = containerEl.getBoundingClientRect();
-        const targetRect = target.getBoundingClientRect();
-
-        const relativeTop = targetRect.top - containerRect.top;
-        const scrollOffset =
-          containerEl.scrollTop + relativeTop - containerEl.clientHeight / 2 + target.clientHeight / 2;
-
-        containerEl.scrollTo({
-          top: scrollOffset,
-          behavior: "smooth",
-        });
+        if (displayType.value !== "watch" && displayType.value !== "channel" && playlist.value?.title) {
+          document.title = `${playlist.value.title} - プレイリスト`;
+        }
+      } catch (e) {
+        console.error('プレイリスト解析エラー:', e);
+        error.value = true;
       }
+
+      nextTick().then(() => {
+        // 中央にスクロール
+        if (playVideoId.value && scrollContainer.value) {
+          const containerEl = scrollContainer.value;
+          const target = containerEl.querySelector(`.playlist-item[data-video-id="${playVideoId.value}"]`);
+          if (target) {
+            const containerRect = containerEl.getBoundingClientRect();
+            const targetRect = target.getBoundingClientRect();
+
+            const relativeTop = targetRect.top - containerRect.top;
+            const scrollOffset =
+              containerEl.scrollTop + relativeTop - containerEl.clientHeight / 2 + target.clientHeight / 2;
+
+            containerEl.scrollTo({ top: scrollOffset, behavior: 'smooth' });
+          }
+        }
+      }).finally(cleanup);
+    };
+
+    function cleanup() {
+      try { if (script.parentNode) script.parentNode.removeChild(script); } catch (e) {}
+      try { delete window[cbName]; } catch (e) { window[cbName] = undefined; }
     }
 
+    script.src = `${apiurl()}?playlist=${playlistId.value}&callback=${cbName}`;
+    script.onerror = () => {
+      clearTimeout(timeoutId);
+      console.error('プレイリスト取得失敗 (script error)');
+      error.value = true;
+      cleanup();
+    };
+
+    timeoutId = setTimeout(() => {
+      console.error('プレイリスト取得タイムアウト');
+      error.value = true;
+      cleanup();
+    }, 30000); // 30秒タイムアウト
+
+    document.body.appendChild(script);
   } catch (err) {
     console.error("プレイリスト取得失敗:", err);
     error.value = true;

@@ -94,43 +94,64 @@ export default {
     });
   },
   methods: {
-    async fetchComments() {
+    fetchComments() {
       this.error = null;
       this.comments = [];
       this.totalCommentCount = null;
       this.loading = true;
 
-      try {
-        const res = await fetch(`${apiurl()}?comments=${this.videoId}`);
+      const cbName = 'jsonp_comments_' + Math.random().toString(36).slice(2, 10);
+      let timeoutId;
 
-        if (!res.ok) {
-          throw new Error(`HTTP error! status: ${res.status}`);
+      window[cbName] = (data) => {
+        clearTimeout(timeoutId);
+        try {
+          this.totalCommentCount = data.totalCommentCount ?? null;
+          if (Array.isArray(data.comments)) {
+            this.comments = data.comments.map((c, index) => ({
+              id: c.id || index,
+              author: c.author || '匿名',
+              authorIcon: c.authorIcon || null,
+              text: c.text || '',
+              date: c.date || '',
+              likes: c.likes ?? 0,
+              isExpanded: false,
+              isClamped: false,
+            }));
+          } else {
+            this.comments = [];
+          }
+        } catch (e) {
+          console.error('コメント解析エラー:', e);
+          this.error = 'コメントを解析できませんでした。';
         }
-
-        const data = await res.json();
-
-        this.totalCommentCount = data.totalCommentCount ?? null;
-
-        if (Array.isArray(data.comments)) {
-          this.comments = data.comments.map((c, index) => ({
-            id: c.id || index,
-            author: c.author || "匿名",
-            authorIcon: c.authorIcon || null,
-            text: c.text || "",
-            date: c.date || "",
-            likes: c.likes ?? 0,
-            isExpanded: false,
-            isClamped: false,
-          }));
-        } else {
-          this.comments = [];
-        }
-      } catch (err) {
-        console.error("コメント取得エラー:", err);
-        this.error = "コメントを読み込めませんでした。";
-      } finally {
         this.loading = false;
+        cleanup();
+      };
+
+      const script = document.createElement('script');
+      script.src = `${apiurl()}?comments=${this.videoId}&callback=${cbName}`;
+      script.onerror = () => {
+        clearTimeout(timeoutId);
+        this.loading = false;
+        this.error = 'コメントの取得に失敗しました (script error)';
+        cleanup();
+      };
+
+      function cleanup() {
+        try {
+          if (script.parentNode) script.parentNode.removeChild(script);
+        } catch (e) {}
+        try { delete window[cbName]; } catch (e) { window[cbName] = undefined; }
       }
+
+      timeoutId = setTimeout(() => {
+        this.loading = false;
+        this.error = 'コメントの取得に失敗しました (タイムアウト)';
+        cleanup();
+      }, 30000); // 30秒タイムアウト
+
+      document.body.appendChild(script);
     },
 
     checkCommentsHeight() {

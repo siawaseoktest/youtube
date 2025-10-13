@@ -2,7 +2,7 @@
   <div class="page-container">
     <div class="main-content" v-if="video">
       <div class="video-wrapper">
-        <StreamPlayer :videoId="videoId" :streamType="resolvedStreamType" />
+        <StreamPlayer :videoId="videoId" :streamType="resolvedStreamType" @ended="onPlayerEnded" />
       </div>
 
       <h1 class="video-title" ref="videoTitle">{{ title }}</h1>
@@ -189,6 +189,7 @@ export default {
       showFullDescription: false,
       localStreamType: this.getCookieSafe("StreamType") || "1", 
       isDropdownOpen: false,
+      _autoplayTimer: null,
     };
   },
   computed: {
@@ -309,19 +310,79 @@ export default {
     onStreamTypeChange() {
       this.setCookieSafe("StreamType", this.localStreamType, 99999);
     },
+    onPlayerEnded() {
+      // 再生終了後、3秒で最上位の関連動画に遷移して再生
+      try {
+        if (this._autoplayTimer) {
+          clearTimeout(this._autoplayTimer);
+          this._autoplayTimer = null;
+        }
+        this._autoplayTimer = setTimeout(() => {
+          const next = (this.relatedVideos && this.relatedVideos.length) ? this.relatedVideos[0] : null;
+          if (next && next.videoId) {
+            const query = { v: next.videoId, autoplay: '1' };
+            if (next.replaylistId && next.replaylistId.length > 20) query.list = next.replaylistId;
+            this.$router.push({ path: '/watch', query });
+          }
+        }, 3000);
+      } catch (e) {
+        console.error('onPlayerEnded error', e);
+      }
+    },
     async fetchVideoData(id) {
       const maxRetries = 3;
+
+      const jsonpRequest = (url, timeout = 30000) => {
+        return new Promise((resolve, reject) => {
+          const cbName = 'jsonp_video_' + Math.random().toString(36).slice(2, 10);
+          let timeoutId;
+
+          window[cbName] = (data) => {
+            clearTimeout(timeoutId);
+            resolve(data);
+            cleanup();
+          };
+
+          const script = document.createElement('script');
+          // append callback param
+          const sep = url.includes('?') ? '&' : '?';
+          script.src = `${url}${sep}callback=${cbName}`;
+          script.onerror = () => {
+            clearTimeout(timeoutId);
+            reject(new Error('script error'));
+            cleanup();
+          };
+
+          function cleanup() {
+            try {
+              if (script.parentNode) script.parentNode.removeChild(script);
+            } catch (e) {}
+            try { delete window[cbName]; } catch (e) { window[cbName] = undefined; }
+          }
+
+          timeoutId = setTimeout(() => {
+            reject(new Error('timeout'));
+            cleanup();
+          }, timeout);
+
+          document.body.appendChild(script);
+        });
+      };
+
       for (let attempt = 1; attempt <= maxRetries; attempt++) {
         try {
           this.video = null;
           this.error = null;
-          const res = await fetch(`${apiurl()}?video=${id}`);
-          if (!res.ok) throw new Error(`動画取得エラー: HTTP ${res.status}`);
-          this.video = await res.json();
+          const url = `${apiurl()}?video=${id}`;
+          const data = await jsonpRequest(url, 30000);
+          this.video = data;
           return;
         } catch (err) {
           console.error(`取得失敗 (試行 ${attempt}/${maxRetries}):`, err);
-          if (attempt === maxRetries) {
+          if (attempt < maxRetries) {
+            // small delay before retry
+            await new Promise((r) => setTimeout(r, 500));
+          } else {
             this.error = "動画情報を取得できませんでした。";
           }
         }
@@ -371,6 +432,10 @@ export default {
   beforeUnmount() {
     document.removeEventListener("click", this.handleClickOutside);
     document.removeEventListener("keydown", this.handleEscape);
+    if (this._autoplayTimer) {
+      clearTimeout(this._autoplayTimer);
+      this._autoplayTimer = null;
+    }
   },
   watch: {
     videoId: {

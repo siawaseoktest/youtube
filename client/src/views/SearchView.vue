@@ -49,20 +49,45 @@ export default {
     },
   },
   methods: {
-    async fetchSearchResults(q) {
+    fetchSearchResults(q) {
       this.loading = true;
       this.error = null;
 
-      try {
-        const res = await fetch(`${apiurl()}?q=${encodeURIComponent(q)}`);
-        if (!res.ok) throw new Error("検索APIでエラーが発生しました");
-        const data = await res.json();
-        this.videos = data.results || [];
-      } catch (e) {
-        this.error = e.message || "検索に失敗しました";
-      } finally {
+      const cbName = 'jsonp_search_' + Math.random().toString(36).slice(2, 10);
+      let timeoutId;
+
+      window[cbName] = (data) => {
+        clearTimeout(timeoutId);
+        try {
+          this.videos = (data && data.results) ? data.results : [];
+        } catch (e) {
+          this.error = '検索結果の解析に失敗しました';
+        }
         this.loading = false;
+        cleanup();
+      };
+
+      const script = document.createElement('script');
+      script.src = `${apiurl()}?q=${encodeURIComponent(q)}&callback=${cbName}`;
+      script.onerror = () => {
+        clearTimeout(timeoutId);
+        this.loading = false;
+        this.error = '検索APIの取得に失敗しました (script error)';
+        cleanup();
+      };
+
+      function cleanup() {
+        if (script.parentNode) script.parentNode.removeChild(script);
+        try { delete window[cbName]; } catch (e) { window[cbName] = undefined; }
       }
+
+      timeoutId = setTimeout(() => {
+        this.loading = false;
+        this.error = '検索APIの取得に失敗しました (タイムアウト)';
+        cleanup();
+      }, 30000);
+
+      document.body.appendChild(script);
     },
   },
 };
