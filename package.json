@@ -1,6 +1,6 @@
 {
   "name": "siatube",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "type": "module",
   "engines": {
     "node": ">=20.0.0",
