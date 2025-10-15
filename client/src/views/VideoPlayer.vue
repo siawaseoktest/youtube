@@ -179,7 +179,7 @@ import { apiurl } from "@/api";
 export default {
   props: {
     videoId: { type: String, required: true },
-    streamType: { type: String, default: "" } 
+    streamType: { type: String, default: "" },
   },
   data() {
     return {
@@ -187,7 +187,7 @@ export default {
       error: null,
       hoverId: null,
       showFullDescription: false,
-      localStreamType: this.getCookieSafe("StreamType") || "1", 
+      localStreamType: this.getCookieSafe("StreamType") || "1",
       isDropdownOpen: false,
       _autoplayTimer: null,
     };
@@ -197,10 +197,7 @@ export default {
       return this.streamType || this.localStreamType;
     },
     viewCount() {
-      return (
-        this.video?.views ||
-        "情報なし"
-      );
+      return this.video?.views || "情報なし";
     },
     title() {
       return this.video?.title || "情報なし";
@@ -209,14 +206,10 @@ export default {
       return this.video?.relativeDate || "";
     },
     likeCount() {
-      return (
-        this.video?.likes || "情報なし"
-      );
+      return this.video?.likes || "情報なし";
     },
     subscriberCount() {
-      return (
-        this.video?.author?.subscribers || "情報なし"
-      );
+      return this.video?.author?.subscribers || "情報なし";
     },
     authorId() {
       return this.video?.author?.id || "情報なし";
@@ -225,10 +218,7 @@ export default {
       return this.video?.author?.name || "情報なし";
     },
     authorThumbnailUrl() {
-      return (
-        this.video?.author?.thumbnail ||
-        "情報なし"
-      );
+      return this.video?.author?.thumbnail || "情報なし";
     },
     descriptionText() {
       return this.video?.description?.text || "情報なし";
@@ -248,9 +238,7 @@ export default {
       return text !== "";
     },
     descriptionRun0() {
-      return (
-        this.video?.description?.run0 || "情報なし"
-      );
+      return this.video?.description?.run0 || "情報なし";
     },
     descriptionRun1() {
       return this.video?.description?.run1 || "";
@@ -263,27 +251,16 @@ export default {
     },
     relatedVideos() {
       const feed = this.video?.related || [];
-      return feed.map((item) => {
-
-        return {
-          base64imge:
-            item.thumbnail || "",
-          badge: 
-            item.badge || "",
-          title: 
-            item.title || "",
-          metadataRow1: 
-            item.channel,
-          metadataRow2Part1:
-            item.views || "",
-          metadataRow2Part2:
-            item.uploaded || "",
-          videoId:
-            item.videoId || "",
-          replaylistId:
-            item.playlistId || "",
-        };
-      });
+      return feed.map((item) => ({
+        base64imge: item.thumbnail || "",
+        badge: item.badge || "",
+        title: item.title || "",
+        metadataRow1: item.channel,
+        metadataRow2Part1: item.views || "",
+        metadataRow2Part2: item.uploaded || "",
+        videoId: item.videoId || "",
+        replaylistId: item.playlistId || "",
+      }));
     },
   },
   methods: {
@@ -294,7 +271,7 @@ export default {
         );
         return match ? decodeURIComponent(match[2]) : null;
       } catch {
-        return null; // cookie非対応環境
+        return null;
       }
     },
     setCookieSafe(name, value, seconds) {
@@ -303,38 +280,42 @@ export default {
         document.cookie = `${name}=${encodeURIComponent(
           value
         )}; expires=${expires}; path=/`;
-      } catch {
-        // cookie非対応時は何もしない
-      }
+      } catch {}
     },
     onStreamTypeChange() {
       this.setCookieSafe("StreamType", this.localStreamType, 99999);
     },
     onPlayerEnded() {
-      // 再生終了後、3秒で最上位の関連動画に遷移して再生
       try {
         if (this._autoplayTimer) {
           clearTimeout(this._autoplayTimer);
           this._autoplayTimer = null;
         }
         this._autoplayTimer = setTimeout(() => {
-          const next = (this.relatedVideos && this.relatedVideos.length) ? this.relatedVideos[0] : null;
+          const next =
+            this.relatedVideos && this.relatedVideos.length
+              ? this.relatedVideos[0]
+              : null;
           if (next && next.videoId) {
-            const query = { v: next.videoId, autoplay: '1' };
-            if (next.replaylistId && next.replaylistId.length > 20) query.list = next.replaylistId;
-            this.$router.push({ path: '/watch', query });
+            const query = { v: next.videoId, autoplay: "1" };
+            if (next.replaylistId && next.replaylistId.length > 20)
+              query.list = next.replaylistId;
+            this.$router.push({ path: "/watch", query });
           }
         }, 3000);
       } catch (e) {
-        console.error('onPlayerEnded error', e);
+        console.error("onPlayerEnded error", e);
       }
     },
+
+    // --- JSONPリクエスト (安全版)
     async fetchVideoData(id) {
       const maxRetries = 3;
 
       const jsonpRequest = (url, timeout = 30000) => {
         return new Promise((resolve, reject) => {
-          const cbName = 'jsonp_video_' + Math.random().toString(36).slice(2, 10);
+          // 👇 短く安全な callback 名
+          const cbName = "jp" + Math.random().toString(36).slice(2, 6);
           let timeoutId;
 
           window[cbName] = (data) => {
@@ -343,13 +324,13 @@ export default {
             cleanup();
           };
 
-          const script = document.createElement('script');
-          // append callback param
-          const sep = url.includes('?') ? '&' : '?';
+          const script = document.createElement("script");
+          const sep = url.includes("?") ? "&" : "?";
           script.src = `${url}${sep}callback=${cbName}`;
+
           script.onerror = () => {
             clearTimeout(timeoutId);
-            reject(new Error('script error'));
+            reject(new Error("script error"));
             cleanup();
           };
 
@@ -357,11 +338,15 @@ export default {
             try {
               if (script.parentNode) script.parentNode.removeChild(script);
             } catch (e) {}
-            try { delete window[cbName]; } catch (e) { window[cbName] = undefined; }
+            try {
+              delete window[cbName];
+            } catch (e) {
+              window[cbName] = undefined;
+            }
           }
 
           timeoutId = setTimeout(() => {
-            reject(new Error('timeout'));
+            reject(new Error("timeout"));
             cleanup();
           }, timeout);
 
@@ -373,14 +358,15 @@ export default {
         try {
           this.video = null;
           this.error = null;
-          const url = `${apiurl()}?video=${id}`;
+
+          // 👇 video パラメータをエンコード
+          const url = `${apiurl()}?video=${encodeURIComponent(id)}`;
           const data = await jsonpRequest(url, 30000);
           this.video = data;
           return;
         } catch (err) {
           console.error(`取得失敗 (試行 ${attempt}/${maxRetries}):`, err);
           if (attempt < maxRetries) {
-            // small delay before retry
             await new Promise((r) => setTimeout(r, 500));
           } else {
             this.error = "動画情報を取得できませんでした。";
@@ -388,6 +374,7 @@ export default {
         }
       }
     },
+
     getPrimaryThumbnail(id) {
       return `https://i.ytimg.com/vi/${id}/hqdefault.jpg`;
     },
