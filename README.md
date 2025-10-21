@@ -1,7 +1,5 @@
 # youtube代替サイト
 
-#リンク
-https://youtube-d8ev.onrender.com/
 
 ## siatubeの展開方法
 npm install
